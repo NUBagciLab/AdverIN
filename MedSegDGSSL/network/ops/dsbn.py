@@ -7,7 +7,7 @@ class _DSBN(nn.Module):
     Args:
         num_features (int): number of features.
         n_domain (int): number of domains.
-        bn_type (str): type of bn. Choices are ['1d', '2d'].
+        bn_type (str): type of bn. Choices are ['1d', '2d', '3d].
     """
 
     def __init__(self, num_features, n_domain, bn_type):
@@ -16,6 +16,8 @@ class _DSBN(nn.Module):
             BN = nn.BatchNorm1d
         elif bn_type == '2d':
             BN = nn.BatchNorm2d
+        elif bn_type == '3d':
+            BN = nn.BatchNorm3d
         else:
             raise ValueError
 

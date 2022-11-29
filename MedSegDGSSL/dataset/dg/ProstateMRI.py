@@ -21,7 +21,7 @@ class ProstateMRI(DatasetBase):
                          test_domains=cfg.DATASET.TARGET_DOMAINS)
 
 if __name__ == "__main__":
-    from MedSegDGSSL.config.default_set.defaults import _C
+    from MedSegDGSSL.config.defaults import _C
     _C.DATASET.ROOT = "/home/zze3980/project/AdverHistAug/Data/ProstateMRI/processed/train3D"
     _C.NUM_CLASSES = 2
     _C.DATASET.SOURCE_DOMAINS = ["BMC", "HK"]

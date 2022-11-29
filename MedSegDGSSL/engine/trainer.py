@@ -24,7 +24,7 @@ from MedSegDGSSL.utils import (
     save_checkpoint, mkdir_if_missing, resume_from_checkpoint,
     load_pretrained_weights
 )
-from MedSegDGSSL.network import build_head, build_backbone, build_encoder, build_decoder
+from MedSegDGSSL.network.segnet.build import build_network
 from MedSegDGSSL.evaluation import build_evaluator
 
 
@@ -81,32 +81,6 @@ class SimpleNet(nn.Module):
             return y, f
 
         return y
-
-class SimpleUNet(nn.Module):
-    def __init__(self, model_cfg, out_channels):
-        super().__init__()
-        self.encoder =  build_encoder(spatial_dims=model_cfg.spatial_dims,
-                                      in_channels=model_cfg.in_channels,
-                                      channels=model_cfg.channels,
-                                      strides=model_cfg.strides,
-                                      kernel_size=model_cfg.kernel_size,
-                                      act=model_cfg.act, norm=model_cfg.norm, dropout=model_cfg.dropout)
-        
-        self.decoder =  build_decoder(spatial_dims=model_cfg.spatial_dims,
-                                      out_channels=out_channels,
-                                      channels=model_cfg.channels,
-                                      strides=model_cfg.strides,
-                                      up_kernel_size=model_cfg.up_kernel_size,
-                                      act=model_cfg.act, norm=model_cfg.norm, dropout=model_cfg.dropout)
-
-    def forward(self, x, return_feature:bool=False):
-        f = self.encoder(x)
-        y = self.decoder(f)
-        if return_feature:
-            return y, f
-        else:
-            return y
-
 
 class BaseTrainer(object):
     def __init__(self):
@@ -402,7 +376,7 @@ class SimpleTrainer(BaseTrainer):
         cfg = self.cfg
 
         print("Building model")
-        self.model = SimpleUNet(cfg.MODEL, self.num_classes)
+        self.model = build_network(cfg.MODEL.NAME, model_cfg=cfg.MODEL)
         if cfg.MODEL.INIT_WEIGHTS:
             load_pretrained_weights(self.model, cfg.MODEL.INIT_WEIGHTS)
         self.model.to(self.device)
