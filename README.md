@@ -1,0 +1,1 @@
+## Segmentation Generalization Framework for Medical Image
