@@ -1,11 +1,11 @@
 import torch
 from torch.nn import functional as F
 
-from optim import build_optimizer, build_lr_scheduler
-from utils import count_num_param
-from engine import TRAINER_REGISTRY, TrainerX
-from network import build_network
-from engine.trainer import SimpleNet
+from MedSegDGSSL.optim import build_optimizer, build_lr_scheduler
+from MedSegDGSSL.utils import count_num_param
+from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
+from MedSegDGSSL.network import build_network
+from MedSegDGSSL.engine.trainer import SimpleNet
 
 
 @TRAINER_REGISTRY.register()

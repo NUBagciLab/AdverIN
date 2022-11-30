@@ -1,6 +1,4 @@
 from .build import TRAINER_REGISTRY, build_trainer # isort:skip
-from .trainer import TrainerX, TrainerXU, TrainerSG, TrainerBase, SimpleTrainer, SimpleNet # isort:skip
+from .trainer import TrainerX, TrainerXU, SimpleTrainer, SimpleNet # isort:skip
 
-from .da import *
 from .dg import *
-from .ssl import *

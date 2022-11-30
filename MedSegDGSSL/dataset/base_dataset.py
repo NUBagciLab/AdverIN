@@ -84,22 +84,23 @@ class DatasetBase(object):
     def check_domain(self):
         for domain in self.train_domains:
             print(domain)
+            print(self.datum.get_domains)
             if not self.datum.check_available(domain):
-                raise ValueError(f"Train domain {domain} not in the domain list {self.datum.get_domains()}")
+                raise ValueError(f"Train domain {domain} not in the domain list {self.datum.get_domains}")
 
         if self.unlabel_domains is not None:
             for domain in self.unlabel_domains:
                 if not self.datum.check_available(domain):
-                    raise ValueError(f"Unlabel domain {domain} not in the domain list {self.datum.get_domains()}")
+                    raise ValueError(f"Unlabel domain {domain} not in the domain list {self.datum.get_domains}")
 
         if self.val_domains is not None:
             for domain in self.val_domains:
                 if not self.datum.check_available(domain):
-                    raise ValueError(f"Validation domain {domain} not in the domain list {self.datum.get_domains()}")
+                    raise ValueError(f"Validation domain {domain} not in the domain list {self.datum.get_domains}")
 
         for domain in self.test_domains:
             if not self.datum.check_available(domain):
-                raise ValueError(f"Test domain {domain} not in the domain list {self.datum.get_domains()}")
+                raise ValueError(f"Test domain {domain} not in the domain list {self.datum.get_domains}")
 
     def generate_domain_data_list(self, domain_list):
         data_list= []

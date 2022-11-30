@@ -25,11 +25,11 @@ def image_preprocessor_2d(file_dict, out_dir, target_size, clip_percent=(0.5, 99
     image_min, image_max = np.percentile(image_resize, q=clip_percent[0]), np.percentile(image_resize, q=clip_percent[1])
     image_resize = np.clip(image, a_min=image_min, a_max=image_max)
     image_resize = 2*(image_resize - image_min)/(image_max - image_min) - 1
-    out_dict["image"] = image_resize
+    out_dict["image"] = image_resize.astype(np.float32)
     if "label" in file_dict.keys():
         seg = skio.imread(file_dict["label"])
         seg_resize = transform.resize(image, target_size, order=0)
-        out_dict["label"] = seg_resize
+        out_dict["label"] = seg_resize.astype(np.int64)
 
     np.savez_compressed(out_dir, **out_dict)
 
@@ -48,13 +48,13 @@ def image_preprocessor_3d(file_dict, out_dir, target_size, clip_percent=(0.5, 99
                             np.percentile(image_resize, q=clip_percent[1], axis=(1, 2), keepdims=True)
     image_resize = np.clip(image, a_min=image_min, a_max=image_max)
     image_resize = 2*(image_resize - image_min)/(image_max - image_min) - 1
-    out_dict["image"] = image_resize
+    out_dict["image"] = image_resize.astype(np.float32)
     if "label" in file_dict.keys():
         seg = sitk.GetArrayFromImage(sitk.ReadImage(file_dict["label"]))
         # This is just for some disgusting image issue
         seg[seg<0] = 0
         seg_resize = transform.resize(seg, target_size, order=0)
-        out_dict["label"] = seg_resize
+        out_dict["label"] = seg_resize.astype(np.int64)
 
     np.savez_compressed(out_dir, **out_dict)
 
@@ -75,11 +75,11 @@ def image_preprocessor_3d_space(file_dict, out_dir, target_space, clip_percent=(
     image_min, image_max = np.percentile(image_resize, q=clip_percent[0]), np.percentile(image_resize, q=clip_percent[1])
     image_resize = np.clip(image, a_min=image_min, a_max=image_max)
     image_resize = 2*(image_resize - image_min)/(image_max - image_min) - 1
-    out_dict["image"] = image_resize
+    out_dict["image"] = image_resize.astype(np.float32)
     if "label" in file_dict.keys():
         seg = sitk.GetArrayFromImage(sitk.ReadImage(file_dict["label"]))
         seg_resize = transform.resize(seg, target_size, order=0)
-        out_dict["label"] = seg_resize
+        out_dict["label"] = seg_resize.astype(np.int64)
 
     np.savez_compressed(out_dir, **out_dict)
 

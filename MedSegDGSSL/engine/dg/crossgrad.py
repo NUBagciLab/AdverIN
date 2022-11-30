@@ -1,10 +1,10 @@
 import torch
 from torch.nn import functional as F
 
-from dassl.optim import build_optimizer, build_lr_scheduler
-from dassl.utils import count_num_param
-from dassl.engine import TRAINER_REGISTRY, TrainerX
-from dassl.engine.trainer import SimpleNet
+from MedSegDGSSL.optim import build_optimizer, build_lr_scheduler
+from MedSegDGSSL.utils import count_num_param
+from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
+from MedSegDGSSL.engine.trainer import SimpleNet
 
 
 @TRAINER_REGISTRY.register()

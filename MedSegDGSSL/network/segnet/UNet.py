@@ -303,11 +303,11 @@ BasicUnet = Basicunet = basicunet = BasicUNet
 
 @NETWORK_REGISTRY.register()
 def basicunet(model_cfg):
-    unet = BasicUNet(spatial_dims=model_cfg.spatial_dims,
-                     in_channels= model_cfg.in_channels,
-                     out_channels= model_cfg.out_channels,
-                     features= model_cfg.features,
-                     norm= model_cfg.norm,
-                     dropout = model_cfg.dropout,
-                     is_return_feature= model_cfg.is_return_features)
+    unet = BasicUNet(spatial_dims=model_cfg.SPATIAL_DIMS,
+                     in_channels= model_cfg.IN_CHANNELS,
+                     out_channels= model_cfg.OUT_CHANNELS,
+                     features= model_cfg.FEATURES,
+                     norm= model_cfg.NORM,
+                     dropout = model_cfg.DROPOUT,
+                     is_return_feature= model_cfg.RETURN_FEATURES)
     return unet

@@ -51,6 +51,7 @@ _C.DATASET = CN()
 # Directory where datasets are stored
 _C.DATASET.ROOT = ''
 _C.DATASET.NAME = ''
+_C.DATASET.NUM_CLASSES = 2
 # List of names of source domains
 _C.DATASET.SOURCE_DOMAINS = ()
 # List of names of target domains
@@ -100,26 +101,32 @@ _C.DATALOADER.TEST.SAMPLER = 'SequentialSampler'
 _C.DATALOADER.TEST.BATCH_SIZE = 32
 
 ###########################
+# Setting for the data augmentation
+###########################
+_C.AUGMENTATION = CN()
+_C.AUGMENTATION.PROB = 0.3
+
+###########################
 # Model
 ###########################
 _C.MODEL = CN()
 # Path to model weights for initialization
 _C.MODEL.INIT_WEIGHTS = ''
-_C.MODEL.BACKBONE = CN()
-_C.MODEL.BACKBONE.NAME = ''
-_C.MODEL.BACKBONE.PRETRAINED = True
-_C.MODEL.BACKBONE.UNCERTAINTY=0.0
-_C.MODEL.BACKBONE.POS=[]
-# Definition of embedding layer
-_C.MODEL.HEAD = CN()
-# If none, no embedding layer will be constructed
-_C.MODEL.HEAD.NAME = ''
-# Structure of hidden layers which is a list, e.g. [512, 512]
-# If not defined, no embedding layer will be constructed
-_C.MODEL.HEAD.HIDDEN_LAYERS = ()
-_C.MODEL.HEAD.ACTIVATION = 'relu'
-_C.MODEL.HEAD.BN = True
-_C.MODEL.HEAD.DROPOUT = 0.
+_C.MODEL.NAME = 'basicunet'
+_C.MODEL.SPATIAL_DIMS = 2
+_C.MODEL.IN_CHANNELS = 1
+_C.MODEL.OUT_CHANNELS = _C.DATASET.NUM_CLASSES
+_C.MODEL.FEATURES = [32, 32, 64, 128, 256, 32]
+_C.MODEL.NORM = ("instance", {"affine": True})
+_C.MODEL.DROPOUT = 0.3
+_C.MODEL.RETURN_FEATURES = False
+_C.MODEL.PRETRAINED = False
+
+###########################
+# Setting for the loss
+###########################
+_C.LOSS = "DiceCELoss"
+
 
 ###########################
 # Optimization
@@ -164,13 +171,14 @@ _C.TRAIN.COUNT_ITER = 'train_x'
 # Test
 ###########################
 _C.TEST = CN()
-_C.TEST.EVALUATOR = 'Classification'
+_C.TEST.EVALUATOR = 'Segmentation'
 _C.TEST.PER_CLASS_RESULT = False
 # Compute confusion matrix, which will be saved
 # to $OUTPUT_DIR/cmat.pt
 _C.TEST.COMPUTE_CMAT = False
 # If NO_TEST=True, no testing will be conducted
 _C.TEST.NO_TEST = False
+_C.TEST.FINAL_MODEL = 'best_val'
 # How often (epoch) to do testing during training
 # Set to 0 or negative value to disable
 _C.TEST.EVAL_FREQ = 1

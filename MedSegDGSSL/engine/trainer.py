@@ -24,7 +24,7 @@ from MedSegDGSSL.utils import (
     save_checkpoint, mkdir_if_missing, resume_from_checkpoint,
     load_pretrained_weights
 )
-from MedSegDGSSL.network.segnet.build import build_network
+from MedSegDGSSL.network import build_network
 from MedSegDGSSL.evaluation import build_evaluator
 
 
@@ -251,8 +251,9 @@ class BaseTrainer(object):
         for self.epoch in range(self.start_epoch, self.max_epoch):
             self.before_epoch()
             self.run_epoch()
-            self.after_epoch()
-        self.after_train()
+            
+            # self.after_epoch()
+        # self.after_train()
 
     def before_train(self):
         pass
@@ -327,7 +328,7 @@ class SimpleTrainer(BaseTrainer):
         self.build_data_loader()
         self.build_model()
         self.loss_func = self.get_loss_func()
-        self.evaluator = build_evaluator(cfg, lab2cname=self.lab2cname)
+        self.evaluator = None
         self.best_result = -np.inf
     
     def check_cfg(self, cfg):
@@ -362,9 +363,9 @@ class SimpleTrainer(BaseTrainer):
         """
         potential_seg_loss_list = ["DiceLoss", "DiceCELoss", "DiceFocalLoss"]
         if self.cfg.LOSS in potential_seg_loss_list:
-            loss = getattr(losses, self.cfg.loss)(softmax=True)
+            loss = getattr(losses, self.cfg.LOSS)(softmax=True, to_onehot_y=True)
         else:
-            raise FileNotFoundError(f"loss type {self.cfg.loss} not support, only support {potential_seg_loss_list}")
+            raise FileNotFoundError(f"loss type {self.cfg.LOSS} not support, only support {potential_seg_loss_list}")
         return loss
 
     def build_model(self):

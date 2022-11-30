@@ -93,6 +93,6 @@ class Preprocessor(object):
 
 
 if __name__ == '__main__':
-    data_dir = '/home/zze3980/project/AdverHistAug/MedSegDGSSL/config/dataset/temp.yaml'
+    data_dir = '/home/zze3980/project/AdverHistAug/configs/preprcossors/ProstateMRI.yaml'
     propressor = Preprocessor(data_dir)
     propressor()

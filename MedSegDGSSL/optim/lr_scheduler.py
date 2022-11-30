@@ -1,5 +1,5 @@
 """
-Modified from https://github.com/KaiyangZhou/deep-person-reid
+Modified from https://github.com/KaiyangZhou
 """
 import torch
 

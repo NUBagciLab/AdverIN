@@ -16,7 +16,7 @@ class ProstateMRI(DatasetBase):
     def __init__(self, cfg):
 
         super().__init__(data_dir=cfg.DATASET.ROOT,
-                         num_classes=cfg.NUM_CLASSES,
+                         num_classes=cfg.DATASET.NUM_CLASSES,
                          train_domains=cfg.DATASET.SOURCE_DOMAINS,
                          test_domains=cfg.DATASET.TARGET_DOMAINS)
 
