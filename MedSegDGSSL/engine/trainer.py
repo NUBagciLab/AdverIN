@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import monai
+from monai.inferers import SliceInferer
 import monai.losses as losses
 from collections import OrderedDict
 from torch.utils.tensorboard import SummaryWriter
@@ -25,7 +26,7 @@ from MedSegDGSSL.utils import (
     load_pretrained_weights
 )
 from MedSegDGSSL.network import build_network
-from MedSegDGSSL.evaluation import build_evaluator
+from MedSegDGSSL.evaluation import build_evaluator, build_final_evaluator
 
 
 class SimpleNet(nn.Module):
@@ -144,7 +145,7 @@ class BaseTrainer(object):
                 },
                 os.path.join(directory, name),
                 is_best=is_best,
-                model_name=model_name,
+                # model_name=model_name,
             )
         
     def resume_model_if_exist(self, directory):
@@ -252,8 +253,8 @@ class BaseTrainer(object):
             self.before_epoch()
             self.run_epoch()
             
-            # self.after_epoch()
-        # self.after_train()
+            self.after_epoch()
+        self.after_train()
 
     def before_train(self):
         pass
@@ -271,6 +272,9 @@ class BaseTrainer(object):
         raise NotImplementedError
 
     def test(self):
+        raise NotImplementedError
+    
+    def final_evaluation(self):
         raise NotImplementedError
 
     def parse_batch_train(self, batch):
@@ -328,7 +332,11 @@ class SimpleTrainer(BaseTrainer):
         self.build_data_loader()
         self.build_model()
         self.loss_func = self.get_loss_func()
-        self.evaluator = None
+        self.evaluator = build_evaluator(cfg, lab2cname={0:'background', 1:'prostate'})
+        self.slice_infer = SliceInferer(spatial_dim=0,
+                                   roi_size=self.cfg.MODEL.PATCH_SIZE,
+                                   sw_batch_size=self.cfg.BATCH_SIZE*16)
+        self.final_evaluator = build_final_evaluator(cfg, lab2cname={0:'background', 1:'prostate'})
         self.best_result = -np.inf
     
     def check_cfg(self, cfg):
@@ -363,7 +371,8 @@ class SimpleTrainer(BaseTrainer):
         """
         potential_seg_loss_list = ["DiceLoss", "DiceCELoss", "DiceFocalLoss"]
         if self.cfg.LOSS in potential_seg_loss_list:
-            loss = getattr(losses, self.cfg.LOSS)(softmax=True, to_onehot_y=True)
+            loss = getattr(losses, self.cfg.LOSS)(include_background=False, softmax=True, to_onehot_y=True)
+            # loss = losses.DiceLoss(include_background=False, softmax=True, to_onehot_y=True)
         else:
             raise FileNotFoundError(f"loss type {self.cfg.LOSS} not support, only support {potential_seg_loss_list}")
         return loss
@@ -418,7 +427,7 @@ class SimpleTrainer(BaseTrainer):
                 self.load_model(self.output_dir)
             else:
                 print("Deploy the last-epoch model")
-            self.test()
+            self.final_evaluation()
 
         # Show elapsed time
         elapsed = round(time.time() - self.time_start)
@@ -467,8 +476,8 @@ class SimpleTrainer(BaseTrainer):
             data_loader = self.test_loader
 
         print(f"Evaluate on the *{split}* set")
-
-        for batch_idx, batch in enumerate(tqdm(data_loader)):
+        
+        for batch_idx, batch in enumerate(data_loader):
             input, label = self.parse_batch_test(batch)
             output = self.model_inference(input)
             self.evaluator.process(output, label)
@@ -481,8 +490,46 @@ class SimpleTrainer(BaseTrainer):
 
         return list(results.values())[0]
 
+    @torch.no_grad()
+    def final_evaluation(self, split=None):
+        """A generic final evaluation pipeline."""
+        self.set_model_mode("eval")
+        self.evaluator.reset()
+
+        if split is None:
+            split = self.cfg.TEST.SPLIT
+
+        if split == "val" and self.val_loader is not None:
+            data_loader = self.final_val_loader
+        else:
+            split = "test"  # in case val_loader is None
+            data_loader = self.final_test_loader
+
+        print(f"Evaluate on the *{split}* set")
+        
+        ###########################
+        ### Need to continue here
+        ###########################
+        for batch_idx, batch in enumerate(data_loader):
+            input, label = self.parse_volume_test(batch)
+            output = self.model_volume_inference(input)
+            self.final_evaluator.process(output, label)
+
+        results = self.final_evaluator.evaluate()
+
+        for k, v in results.items():
+            tag = f"{split}/{k}"
+            self.write_scalar(tag, v, self.epoch)
+
+        return list(results.values())[0]
+
     def model_inference(self, input):
         return self.model(input)
+    
+    def model_volume_inference(self, input):
+        """ volume level model inference
+        """
+        return self.slice_infer(input, self.model)
 
     def parse_batch_test(self, batch):
         input = batch["image"]
@@ -490,6 +537,8 @@ class SimpleTrainer(BaseTrainer):
 
         input = input.to(self.device)
         label = label.to(self.device)
+        input = torch.flatten(input, start_dim=0, end_dim=1)
+        label = torch.flatten(label, start_dim=0, end_dim=1)
 
         return input, label
     

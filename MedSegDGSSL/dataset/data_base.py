@@ -83,8 +83,6 @@ class DatasetBase(object):
 
     def check_domain(self):
         for domain in self.train_domains:
-            print(domain)
-            print(self.datum.get_domains)
             if not self.datum.check_available(domain):
                 raise ValueError(f"Train domain {domain} not in the domain list {self.datum.get_domains}")
 
@@ -116,7 +114,6 @@ class DatasetBase(object):
     def get_files(self):
         self.train_x = self.generate_domain_data_list(self.train_domains)
         self.test = self.generate_domain_data_list(self.test_domains)
-        print(self.train_x)
 
         if self.val_domains is not None:
             self.val = self.generate_domain_data_list(self.val_domains)

@@ -10,12 +10,13 @@ import functools as func
 from multiprocessing.pool import Pool
 
 from MedSegDGSSL.preprocess.utils import (image_preprocessor_2d, 
-                              image_preprocessor_3d,
+                              image_preprocessor_3d, image_preprocessor_3d_slice, 
                               image_preprocessor_3d_space)
 from MedSegDGSSL.utils.tools import mkdir_if_missing
 
 TWO_DIM_DTYPE = ["png", "jpg"]
 THREE_DIM_DTYPE = ["dicom", "nii", "nii.gz"]
+
 
 class Preprocessor(object):
     """Dataset preprocessor using the dataset configuration file
@@ -67,7 +68,7 @@ class Preprocessor(object):
             else:
                 temp_file_list = [{"image": os.path.abspath(os.path.join(self.raw_dir, domain, item["image"]))} for item in temp_file]
             
-            temp_outdir_list = [os.path.abspath(os.path.join(self.processed_dir, domain, item["image"].split('/')[-1].split('.')[0] + ".npz")) for item in temp_file]
+            temp_outdir_list = [os.path.abspath(os.path.join(self.processed_dir, domain, item["image"].split('/')[-1].split('.')[0])) for item in temp_file]
 
             file_list.extend(temp_file_list)
             outdir_list.extend(temp_outdir_list)
@@ -77,12 +78,13 @@ class Preprocessor(object):
 
     def __call__(self):
         file_list, outdir_list = self.generate_mapfiles()
+
         if self.is_threeD_data:
             if self.is_threeD_training:
                 map_func = func.partial(image_preprocessor_3d_space, target_space=self.target_space,
                                                                clip_percent=(0.5, 99.5))
             else:
-                map_func = func.partial(image_preprocessor_3d, target_size=self.target_size,
+                map_func = func.partial(image_preprocessor_3d_slice, target_size=self.target_size,
                                                                clip_percent=(0.5, 99.5))
         else:
             map_func = func.partial(image_preprocessor_2d, target_size=self.target_size,

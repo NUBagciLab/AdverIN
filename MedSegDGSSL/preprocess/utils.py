@@ -31,9 +31,9 @@ def image_preprocessor_2d(file_dict, out_dir, target_size, clip_percent=(0.5, 99
         seg_resize = transform.resize(image, target_size, order=0)
         out_dict["label"] = seg_resize.astype(np.int64)
 
-    np.savez_compressed(out_dir, **out_dict)
+    np.savez(out_dir+".npz", **out_dict)
 
-def image_preprocessor_3d(file_dict, out_dir, target_size, clip_percent=(0.5, 99.5)):
+def image_preprocessor_3d_slice(file_dict, out_dir, target_size, clip_percent=(0.5, 99.5)):
     ### This one is to support the nii, dicom ... 3d data tyle
     # file dict should be like {"image":image_dir, "label":label_dir}
     # note that the resize transform will be limited with xy plane
@@ -56,7 +56,35 @@ def image_preprocessor_3d(file_dict, out_dir, target_size, clip_percent=(0.5, 99
         seg_resize = transform.resize(seg, target_size, order=0)
         out_dict["label"] = seg_resize.astype(np.int64)
 
-    np.savez_compressed(out_dir, **out_dict)
+    for i in range(image_resize.shape[0]):
+        out_dict_slice = {"image": image_resize[i]}
+        if "label" in file_dict.keys():
+            out_dict_slice.update({"label": seg_resize[i]})
+        np.savez(out_dir+"_slice{:03d}.npz".format(i), **out_dict)
+
+def image_preprocessor_3d(file_dict, out_dir, target_size, clip_percent=(0.5, 99.5)):
+    ### This one is to support the nii, dicom ... 3d data tyle
+    # file dict should be like {"image":image_dir, "label":label_dir}
+    # This is defined for 3d network training
+
+    out_dict = {}
+    image_org = sitk.ReadImage(file_dict["image"])
+    image = sitk.GetArrayFromImage(image_org)
+    org_shape = image_org.GetSize()
+
+    target_size = tuple([org_shape[-1], *target_size[:-1]])
+    # For the z dimension, the axis size should not be changed
+    image_resize = transform.resize(image, target_size, order=1)
+    image_min, image_max = np.percentile(image_resize, q=clip_percent[0]), np.percentile(image_resize, q=clip_percent[1])
+    image_resize = np.clip(image, a_min=image_min, a_max=image_max)
+    image_resize = 2*(image_resize - image_min)/(image_max - image_min) - 1
+    out_dict["image"] = image_resize.astype(np.float32)
+    if "label" in file_dict.keys():
+        seg = sitk.GetArrayFromImage(sitk.ReadImage(file_dict["label"]))
+        seg_resize = transform.resize(seg, target_size, order=0)
+        out_dict["label"] = seg_resize.astype(np.int64)
+
+    np.savez(out_dir+".npz", **out_dict)
 
 def image_preprocessor_3d_space(file_dict, out_dir, target_space, clip_percent=(0.5, 99.5)):
     ### This one is to support the nii, dicom ... 3d data tyle
@@ -81,7 +109,7 @@ def image_preprocessor_3d_space(file_dict, out_dir, target_space, clip_percent=(
         seg_resize = transform.resize(seg, target_size, order=0)
         out_dict["label"] = seg_resize.astype(np.int64)
 
-    np.savez_compressed(out_dir, **out_dict)
+    np.savez(out_dir+".npz", **out_dict)
 
 if __name__ =='__main__':
     file_dict = {'image':'/home/zze3980/project/AdverHistAug/Data/ProstateMRI/raw_data/Domain1/imagesTr/Case00_0000.nii.gz',

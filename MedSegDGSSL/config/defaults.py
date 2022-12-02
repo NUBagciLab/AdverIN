@@ -75,7 +75,7 @@ _C.DATASET.ALL_AS_UNLABELED = False
 # Dataloader
 ###########################
 _C.DATALOADER = CN()
-_C.DATALOADER.NUM_WORKERS = 4
+_C.DATALOADER.NUM_WORKERS = 8
 # Apply transformations to an image K times (during training)
 _C.DATALOADER.K_TRANSFORMS = 1
 # Setting for train_x data-loader
@@ -114,6 +114,7 @@ _C.MODEL = CN()
 _C.MODEL.INIT_WEIGHTS = ''
 _C.MODEL.NAME = 'basicunet'
 _C.MODEL.SPATIAL_DIMS = 2
+_C.MODEL.PATCH_SIZE = (384, 384)
 _C.MODEL.IN_CHANNELS = 1
 _C.MODEL.OUT_CHANNELS = _C.DATASET.NUM_CLASSES
 _C.MODEL.FEATURES = [32, 32, 64, 128, 256, 32]

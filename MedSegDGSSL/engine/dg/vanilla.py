@@ -1,6 +1,8 @@
 from torch.nn import functional as F
 
 from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
+import torch
+
 from MedSegDGSSL.metrics import compute_dice
 
 
@@ -11,9 +13,9 @@ class Vanilla(TrainerX):
     def forward_backward(self, batch):
         input, label = self.parse_batch_train(batch)
         output = self.model(input)
+        #print(input.shape, torch.sum(label))
         loss = self.loss_func(output, label)
         self.model_backward_and_update(loss)
-        print(loss.item())
         loss_summary = {
             'loss': loss.item()}
         dice_value = compute_dice(output, label)
@@ -30,4 +32,7 @@ class Vanilla(TrainerX):
         label = batch['label']
         input = input.to(self.device)
         label = label.to(self.device)
+
+        input = torch.flatten(input, start_dim=0, end_dim=1)
+        label = torch.flatten(label, start_dim=0, end_dim=1)
         return input, label

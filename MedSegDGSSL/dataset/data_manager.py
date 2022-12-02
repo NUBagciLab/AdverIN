@@ -1,32 +1,13 @@
 import torch
 import numpy as np
-from torch.utils.data import Dataset
 
-from monai.data import DataLoader
+
+from torch.utils.data import DataLoader
 from MedSegDGSSL.dataset.build import build_dataset
 from MedSegDGSSL.dataset.samplers import build_sampler
-from MedSegDGSSL.dataset.augmentation.basic_augmentation import *
+from MedSegDGSSL.dataset.dataset import *
+from MedSegDGSSL.dataset.augmentation.data_augmentation import *
 
-
-class DatasetWarpper(Dataset):
-    def __init__(self, data_files:list, transform, keys=("image", "label")):
-        super().__init__()
-        self.data_files = data_files
-        self.transform = transform
-        self.keys = keys
-
-    def __len__(self):
-        return len(self.data_files)
-    
-    def __getitem__(self, index):
-        temp_dict = self.data_files[index]
-        out_dict = {}
-        out_dict["domain"] = temp_dict["domain"]
-        temp_data = np.load(temp_dict["data"])
-        for key in self.keys:
-            out_dict[key] = temp_data[key]
-        out_dict = self.transform(out_dict)
-        return out_dict
 
 def build_data_loader(
     cfg,
@@ -75,25 +56,25 @@ class DataManager:
 
         # Build transform
         if custom_tfm_train is None:
-            tfm_train = get_basic_2d_augmentation(cfg.DATASET.NUM_CLASSES, prob=cfg.AUGMENTATION.PROB)
+            tfm_train = get_default_train_augmentation(cfg.DATASET.NUM_CLASSES, prob=cfg.AUGMENTATION.PROB)
         else:
             print('* Using custom transform for training')
             tfm_train = custom_tfm_train
 
         if custom_tfm_test is None:
-            tfm_test = get_evaluation_2d_augmentation(cfg.DATASET.NUM_CLASSES)
+            tfm_test = get_online_eval_augmentation(cfg.DATASET.NUM_CLASSES)
         else:
             print('* Using custom transform for testing')
             tfm_test = custom_tfm_test
         
         if custom_tfm_unlabel is None:
-            tfm_unlabel = get_unlabel_2d_augmentation(cfg.DATASET.NUM_CLASSES, prob=cfg.AUGMENTATION.PROB)
+            tfm_unlabel = get_default_train_augmentation(cfg.DATASET.NUM_CLASSES, prob=cfg.AUGMENTATION.PROB)
         else:
             print('* Using custom transform for unlabel data')
             tfm_unlabel = custom_tfm_unlabel
         
         if dataset_wrapper is None:
-            dataset_wrapper = DatasetWarpper
+            dataset_wrapper = TrainDatasetWarpper
         else:
             print('* Using custom dataset wrapper')
 
