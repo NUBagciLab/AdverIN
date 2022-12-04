@@ -11,6 +11,7 @@ import tqdm
 import torch
 import torch.nn as nn
 import numpy as np
+import pickle
 import monai
 from monai.inferers import SliceInferer
 import monai.losses as losses
@@ -28,60 +29,9 @@ from MedSegDGSSL.utils import (
 from MedSegDGSSL.network import build_network
 from MedSegDGSSL.evaluation import build_evaluator, build_final_evaluator
 
-
 class SimpleNet(nn.Module):
-    """A simple neural network composed of a CNN backbone
-    and optionally a head such as mlp for classification.
-    """
-
-    def __init__(self, cfg, model_cfg, num_classes, **kwargs):
+    def __init__(self) -> None:
         super().__init__()
-        self.backbone = build_backbone(
-            model_cfg.BACKBONE.NAME,
-            verbose=cfg.VERBOSE,
-            pretrained=model_cfg.BACKBONE.PRETRAINED,
-            **kwargs,
-        )
-        fdim = self.backbone.out_features
-
-        self.head = None
-        if model_cfg.HEAD.NAME and model_cfg.HEAD.HIDDEN_LAYERS:
-            self.head = build_head(
-                model_cfg.HEAD.NAME,
-                verbose=cfg.VERBOSE,
-                in_features=fdim,
-                hidden_layers=model_cfg.HEAD.HIDDEN_LAYERS,
-                activation=model_cfg.HEAD.ACTIVATION,
-                bn=model_cfg.HEAD.BN,
-                dropout=model_cfg.HEAD.DROPOUT,
-                **kwargs,
-            )
-            fdim = self.head.out_features
-
-        self.classifier = None
-        if num_classes > 0:
-            self.classifier = nn.Linear(fdim, num_classes)
-
-        self._fdim = fdim
-
-    @property
-    def fdim(self):
-        return self._fdim
-
-    def forward(self, x, return_feature=False):
-        f = self.backbone(x)
-        if self.head is not None:
-            f = self.head(f)
-
-        if self.classifier is None:
-            return f
-
-        y = self.classifier(f)
-
-        if return_feature:
-            return y, f
-
-        return y
 
 class BaseTrainer(object):
     def __init__(self):
@@ -313,7 +263,6 @@ class BaseTrainer(object):
 
 class SimpleTrainer(BaseTrainer):
     """A simple trainer class implementing generic functions."""
-
     def __init__(self, cfg):
         super().__init__()
         self.check_cfg(cfg)
@@ -329,15 +278,14 @@ class SimpleTrainer(BaseTrainer):
         self.output_dir = cfg.OUTPUT_DIR
 
         self.cfg = cfg
+        print(self.cfg.TEST.NO_TEST)
         self.build_data_loader()
         self.build_model()
         self.loss_func = self.get_loss_func()
-        self.evaluator = build_evaluator(cfg, lab2cname={0:'background', 1:'prostate'})
-        self.slice_infer = SliceInferer(spatial_dim=0,
-                                   roi_size=self.cfg.MODEL.PATCH_SIZE,
-                                   sw_batch_size=self.cfg.BATCH_SIZE*16)
-        self.final_evaluator = build_final_evaluator(cfg, lab2cname={0:'background', 1:'prostate'})
-        self.best_result = -np.inf
+        self.test_meta_info = self.dm.dataset.get_domain_meta(self.cfg.DATASET.TARGET_DOMAINS[0])
+        self._lab2cname = self.test_meta_info["dataset_info"]['labels']
+        self.evaluator = build_evaluator(cfg, lab2cname=self._lab2cname)
+        self.best_result = 0
     
     def check_cfg(self, cfg):
         """Check whether some variables are set correctly for
@@ -360,6 +308,7 @@ class SimpleTrainer(BaseTrainer):
         self.train_loader_u = dm.train_loader_u  # optional, can be None
         self.val_loader = dm.val_loader  # optional, can be None
         self.test_loader = dm.test_loader
+        self.final_test_loader = dm.final_test_loader
 
         self.num_classes = dm.num_classes
         self.num_source_domains = dm.num_source_domains
@@ -444,21 +393,23 @@ class SimpleTrainer(BaseTrainer):
             (self.epoch + 1) % self.cfg.TRAIN.CHECKPOINT_FREQ == 0
             if self.cfg.TRAIN.CHECKPOINT_FREQ > 0 else False
         )
-
-        if do_test and self.cfg.TEST.FINAL_MODEL == "best_val":
-            curr_result = self.test(split="val")
-            is_best = curr_result > self.best_result
-            if is_best:
-                self.best_result = curr_result
-                self.save_model(
-                    self.epoch,
-                    self.output_dir,
-                    val_result=curr_result,
-                    model_name="model-best.pth.tar"
-                )
-
         if meet_checkpoint_freq or last_epoch:
             self.save_model(self.epoch, self.output_dir)
+
+            if do_test and self.cfg.TEST.FINAL_MODEL == "best_val":
+                curr_result = self.test(split="val")
+                is_best = curr_result > self.best_result
+
+                print('*'*32, 'load things here', curr_result, is_best)
+                if is_best:
+                    self.best_result = curr_result
+                    self.save_model(
+                        self.epoch,
+                        self.output_dir,
+                        is_best=is_best, 
+                        val_result=curr_result,
+                        model_name="model-best.pth.tar"
+                    )
     
     @torch.no_grad()
     def test(self, split=None):
@@ -488,40 +439,34 @@ class SimpleTrainer(BaseTrainer):
             tag = f"{split}/{k}"
             self.write_scalar(tag, v, self.epoch)
 
-        return list(results.values())[0]
+        return results['dice']
 
     @torch.no_grad()
     def final_evaluation(self, split=None):
         """A generic final evaluation pipeline."""
         self.set_model_mode("eval")
-        self.evaluator.reset()
+        
+        self.final_evaluator = build_final_evaluator(self.cfg, meta_info=self.test_meta_info)
+        
+        self.slice_infer = SliceInferer(spatial_dim=0,
+                                        roi_size=self.cfg.MODEL.PATCH_SIZE,
+                                        sw_batch_size=self.cfg.DATALOADER.TEST.BATCH_SIZE)
+        self.final_evaluator.reset()
 
-        if split is None:
-            split = self.cfg.TEST.SPLIT
+        data_loader = self.final_test_loader
 
-        if split == "val" and self.val_loader is not None:
-            data_loader = self.final_val_loader
-        else:
-            split = "test"  # in case val_loader is None
-            data_loader = self.final_test_loader
-
-        print(f"Evaluate on the *{split}* set")
+        print(f"Evaluate on the *{self.cfg.DATASET.TARGET_DOMAINS}* set")
         
         ###########################
         ### Need to continue here
         ###########################
         for batch_idx, batch in enumerate(data_loader):
-            input, label = self.parse_volume_test(batch)
+            input, label, meta = self.parse_batch_evaluation(batch)
             output = self.model_volume_inference(input)
-            self.final_evaluator.process(output, label)
+            self.final_evaluator.process(output, label, meta['case_name'][0])
 
         results = self.final_evaluator.evaluate()
-
-        for k, v in results.items():
-            tag = f"{split}/{k}"
-            self.write_scalar(tag, v, self.epoch)
-
-        return list(results.values())[0]
+        return results
 
     def model_inference(self, input):
         return self.model(input)
@@ -532,15 +477,23 @@ class SimpleTrainer(BaseTrainer):
         return self.slice_infer(input, self.model)
 
     def parse_batch_test(self, batch):
-        input = batch["image"]
-        label = batch["label"]
+        input = batch["data"]
+        label = batch["seg"]
 
         input = input.to(self.device)
         label = label.to(self.device)
-        input = torch.flatten(input, start_dim=0, end_dim=1)
-        label = torch.flatten(label, start_dim=0, end_dim=1)
 
         return input, label
+    
+    def parse_batch_evaluation(self, batch):
+        input = batch["data"]
+        label = batch["seg"]
+        meta = batch["meta"]
+
+        input = input.to(self.device)
+        label = label.to(self.device)
+
+        return input, label, meta
     
     def get_current_lr(self, names=None):
         names = self.get_model_names(names)
@@ -625,9 +578,9 @@ class TrainerXU(SimpleTrainer):
             end = time.time()
 
     def parse_batch_train(self, batch_x, batch_u):
-        input_x = batch_x["image"]
-        label_x = batch_x["label"]
-        input_u = batch_u["image"]
+        input_x = batch_x["data"]
+        label_x = batch_x["seg"]
+        input_u = batch_u["data"]
 
         input_x = input_x.to(self.device)
         label_x = label_x.to(self.device)

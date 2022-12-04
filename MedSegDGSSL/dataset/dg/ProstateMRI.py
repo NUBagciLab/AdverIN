@@ -1,5 +1,5 @@
 from MedSegDGSSL.dataset.build import DATASET_REGISTRY
-from MedSegDGSSL.dataset.base_dataset import Datum, DatasetBase
+from MedSegDGSSL.dataset.data_base import Datum, DatasetBase
 
 
 @DATASET_REGISTRY.register()
@@ -11,8 +11,8 @@ class ProstateMRI(DatasetBase):
         - Prostate Segmentation
     """
     dataset_name = 'ProstateMRI'
-    domains = ["BMC", "HK", "BIDMC"]
-
+    domains = ["BMC", "HK", "I2CVB", "UCL", "RUNMC", "BIDMC"]
+    labels = {"0": "Background", "1": "Prostate"}
     def __init__(self, cfg):
 
         super().__init__(data_dir=cfg.DATASET.ROOT,

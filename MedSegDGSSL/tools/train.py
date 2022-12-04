@@ -51,12 +51,7 @@ def reset_cfg(cfg, args):
     if args.head:
         cfg.MODEL.HEAD.NAME = args.head
 
-    #if args.uncertainty:
-    cfg.MODEL.UNCERTAINTY = args.uncertainty
     cfg.DATALOADER.TRAIN_X.BATCH_SIZE = args.batch_size
-    #if args.pos:
-    cfg.MODEL.POS = args.pos
-
 
 def setup_cfg(args):
     cfg = get_cfg_default()
@@ -65,7 +60,6 @@ def setup_cfg(args):
         cfg.merge_from_file(args.dataset_config_file)
     if args.config_file:
         cfg.merge_from_file(args.config_file)
-    cfg.merge_from_list(args.opts)
     cfg.freeze()
     return cfg
 
@@ -167,14 +161,5 @@ if __name__ == '__main__':
     parser.add_argument(
         '--no-train', action='store_true', help='do not call trainer.train()'
     )
-    parser.add_argument(
-        'opts',
-        default=None,
-        nargs=argparse.REMAINDER,
-        help='modify config options using the command-line'
-    )
-    parser.add_argument('--uncertainty', default=0.0, type=float)
-    parser.add_argument('--pos', nargs='+', type=int, default=[],
-                        help='pos for uncertainty')
     args = parser.parse_args()
     main(args)

@@ -14,7 +14,7 @@ Data
 '''
 
 import os
-
+import pickle
 
 class Datum(object):
     """
@@ -120,3 +120,10 @@ class DatasetBase(object):
 
         if self.unlabel_domains is not None:
             self.train_u = self.generate_domain_data_list(self.unlabel_domains)
+
+    def get_domain_meta(self, domain):
+        domain_meta_dir = os.path.join(self.data_dir, domain, "meta.pickle")
+        with open(domain_meta_dir, 'rb') as f:
+            meta_data = pickle.load(f)
+        
+        return meta_data

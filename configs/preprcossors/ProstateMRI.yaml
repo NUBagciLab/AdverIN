@@ -1,4 +1,4 @@
-data_dir: "/home/zze3980/project/AdverHistAug/data/ProstateMRI"
-out_tag: "train3D"
+data_dir: "/data/datasets/zheyuan/DGFramework/ProstateMRI"
+out_tag: "2DSlice"
 file_type: "nii.gz"
 target_size: [384, 384]

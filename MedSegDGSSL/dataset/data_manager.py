@@ -41,6 +41,28 @@ def build_data_loader(
     return data_loader
 
 
+def build_evaluation_loader(
+    cfg,
+    data_source=None,
+    n_domain=0,
+):
+    # Build the dataset
+    if cfg.DATA_IS_3D and cfg.TRAINING_IS_2D:
+        dataset = Eval3DDatasetWarpperFrom2D(data_files=data_source)
+    else:
+        dataset = EvalDatasetWarpper(data_files=data_source)
+
+    # Build data loader
+    # For evaluation, due to case inference issue, we should use batch_size=1
+    data_loader = DataLoader(
+        dataset=dataset,
+        batch_size=1,
+        pin_memory=(torch.cuda.is_available() and cfg.USE_CUDA)
+    )
+
+    return data_loader
+
+
 class DataManager:
 
     def __init__(
@@ -56,19 +78,19 @@ class DataManager:
 
         # Build transform
         if custom_tfm_train is None:
-            tfm_train = get_default_train_augmentation(cfg.DATASET.NUM_CLASSES, prob=cfg.AUGMENTATION.PROB)
+            tfm_train = get_default_train_augmentation(cfg.MODEL.PATCH_SIZE)
         else:
             print('* Using custom transform for training')
             tfm_train = custom_tfm_train
 
         if custom_tfm_test is None:
-            tfm_test = get_online_eval_augmentation(cfg.DATASET.NUM_CLASSES)
+            tfm_test = get_online_eval_augmentation(cfg.MODEL.PATCH_SIZE)
         else:
             print('* Using custom transform for testing')
             tfm_test = custom_tfm_test
         
         if custom_tfm_unlabel is None:
-            tfm_unlabel = get_default_train_augmentation(cfg.DATASET.NUM_CLASSES, prob=cfg.AUGMENTATION.PROB)
+            tfm_unlabel = get_default_train_augmentation(cfg.MODEL.PATCH_SIZE)
         else:
             print('* Using custom transform for unlabel data')
             tfm_unlabel = custom_tfm_unlabel
@@ -137,6 +159,12 @@ class DataManager:
             dataset_wrapper=dataset_wrapper
         )
 
+        # Build data loader for final evaluation
+        final_test_loader = build_evaluation_loader(
+            cfg,
+            data_source=dataset.test
+        )
+
         # Attributes
         self._num_classes = dataset.num_classes
         self._num_source_domains = len(cfg.DATASET.SOURCE_DOMAINS)
@@ -147,6 +175,7 @@ class DataManager:
         self.train_loader_u = train_loader_u
         self.val_loader = val_loader
         self.test_loader = test_loader
+        self.final_test_loader = final_test_loader
 
         if cfg.VERBOSE:
             self.show_dataset_summary(cfg)

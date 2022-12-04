@@ -47,8 +47,6 @@ def get_default_train_augmentation(patch_size, params_key='3D'):
     if params.get("do_mirror"):
         tr_transforms.append(MirrorTransform(params.get("mirror_axes")))
 
-    tr_transforms.append(NumpyToTensor(['data', 'seg'], 'float'))
-
     tr_transforms = Compose(tr_transforms)
     return tr_transforms
 

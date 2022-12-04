@@ -4,6 +4,7 @@ Multidomain preprocessor for 2D, 3D data
 
 import os
 import json
+import pickle
 import yaml
 import functools as func
 
@@ -53,15 +54,16 @@ class Preprocessor(object):
             self.target_size = tuple(self.data_preprocess_config["target_size"])
 
     def generate_mapfiles(self):
-        file_list = []
-        outdir_list = []
+        file_dict = {}
+        outdir_dict = {}
+        dataset_meta_dict = {}
     
         for domain in self.domains:
             mkdir_if_missing(os.path.join(self.processed_dir, domain))
             with open(os.path.join(self.raw_dir, domain, "dataset.json"), 'r') as f:
                 temp_dataset_json = json.load(f)
             
-            temp_file = temp_dataset_json["training"]
+            temp_file = temp_dataset_json.pop("training")
             if "label" in temp_file[0].keys():
                 temp_file_list = [{"image": os.path.abspath(os.path.join(self.raw_dir, domain, item["image"])),
                                     "label": os.path.abspath(os.path.join(self.raw_dir, domain, item["label"]))} for item in temp_file]
@@ -70,14 +72,16 @@ class Preprocessor(object):
             
             temp_outdir_list = [os.path.abspath(os.path.join(self.processed_dir, domain, item["image"].split('/')[-1].split('.')[0])) for item in temp_file]
 
-            file_list.extend(temp_file_list)
-            outdir_list.extend(temp_outdir_list)
-        
-        return file_list, outdir_list
+            file_dict[domain] = temp_file_list
+            outdir_dict[domain] = temp_outdir_list
+
+            _ =temp_dataset_json.pop("test")
+            dataset_meta_dict[domain] = temp_dataset_json
+        return file_dict, outdir_dict, dataset_meta_dict
     
 
     def __call__(self):
-        file_list, outdir_list = self.generate_mapfiles()
+        file_dict, outdir_dict, dataset_meta_dict = self.generate_mapfiles()
 
         if self.is_threeD_data:
             if self.is_threeD_training:
@@ -90,11 +94,18 @@ class Preprocessor(object):
             map_func = func.partial(image_preprocessor_2d, target_size=self.target_size,
                                                                clip_percent=(0.5, 99.5))
         
-        with Pool(processes=self.NUM_THREAD) as pool:
-            pool.starmap(map_func, zip(file_list, outdir_list))
+        for domain in self.domains:
+            with Pool(processes=self.NUM_THREAD) as pool:
+                meta_list = pool.starmap(map_func, zip(file_dict[domain], outdir_dict[domain]))
+            meta_dict = {item['case_name']:item for item in meta_list}
+            out_dict = {'case_info':meta_dict, 'dataset_info': dataset_meta_dict[domain]}
+            with open(os.path.join(self.processed_dir, domain, "meta.pickle"), 'wb') as f:
+                pickle.dump(out_dict, f)
+
+        print("Finished preprocessing")
 
 
 if __name__ == '__main__':
-    data_dir = '/home/zze3980/project/AdverHistAug/configs/preprcossors/ProstateMRI.yaml'
-    propressor = Preprocessor(data_dir)
+    config_dir = '/home/zze3980/project/AdverHistAug/configs/preprcossors/ProstateMRI.yaml'
+    propressor = Preprocessor(config_dir)
     propressor()

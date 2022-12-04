@@ -19,12 +19,14 @@ _C.USE_CUDA = True
 # Print detailed information (e.g. what trainer,
 # dataset, backbone, etc.)
 _C.VERBOSE = True
+_C.DATA_IS_3D = True
+_C.TRAINING_IS_2D = True
 
 ###########################
 # Input
 ###########################
 _C.INPUT = CN()
-_C.INPUT.SIZE = (224, 224)
+_C.INPUT.SIZE = (384, 384)
 # For available choices please refer to transforms.py
 _C.INPUT.TRANSFORMS = ()
 # If True, tfm_train and tfm_test will be None
@@ -161,7 +163,7 @@ _C.OPTIM.MAX_EPOCH = 10
 _C.TRAIN = CN()
 # How often (epoch) to save model during training
 # Set to 0 or negative value to disable
-_C.TRAIN.CHECKPOINT_FREQ = 0
+_C.TRAIN.CHECKPOINT_FREQ = 5
 # How often (batch) to print training information
 _C.TRAIN.PRINT_FREQ = 10
 # Use 'train_x', 'train_u' or 'smaller_one' to count
@@ -173,6 +175,7 @@ _C.TRAIN.COUNT_ITER = 'train_x'
 ###########################
 _C.TEST = CN()
 _C.TEST.EVALUATOR = 'Segmentation'
+_C.TEST.FINAL_EVALUATOR = 'FinalSegmentation'
 _C.TEST.PER_CLASS_RESULT = False
 # Compute confusion matrix, which will be saved
 # to $OUTPUT_DIR/cmat.pt

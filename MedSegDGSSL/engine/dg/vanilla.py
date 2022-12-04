@@ -28,11 +28,8 @@ class Vanilla(TrainerX):
         return loss_summary
 
     def parse_batch_train(self, batch):
-        input = batch['image']
-        label = batch['label']
+        input = batch['data']
+        label = batch['seg']
         input = input.to(self.device)
         label = label.to(self.device)
-
-        input = torch.flatten(input, start_dim=0, end_dim=1)
-        label = torch.flatten(label, start_dim=0, end_dim=1)
         return input, label

@@ -5,11 +5,12 @@ from collections import OrderedDict, defaultdict
 import torch
 import pandas as pd
 import numpy as np
+from skimage import transform
 from sklearn.metrics import confusion_matrix
 
 from .build import EVALUATOR_REGISTRY
 from MedSegDGSSL.metrics.accuracy import compute_dice
-from MedSegDGSSL.metrics.final_evaluator import evaluate_single_case, default_metrics
+from MedSegDGSSL.evaluation.case_evaluate import evaluate_single_case, default_metrics
 
 class EvaluatorBase:
     """Base evaluator."""
@@ -122,19 +123,15 @@ class Classification(EvaluatorBase):
 class Segmentation(EvaluatorBase):
     """Evaluator for classification."""
 
-    def __init__(self, cfg, lab2cname=None, **kwargs):
+    def __init__(self, cfg, lab2cname, **kwargs):
         super().__init__(cfg)
         self._lab2cname = lab2cname
-        self.num_classes  = len(lab2cname)
+        self.num_classes  = len(self._lab2cname)
 
         self.average_dice = 0
         self.best_dice = 0
         self._dice_class = 0
         self._dice_list = []
-        
-        if cfg.TEST.PER_CLASS_RESULT:
-            assert lab2cname is not None
-            self._per_class_res = defaultdict(list)
 
     def reset(self):
         self._dice = 0
@@ -170,32 +167,36 @@ class Segmentation(EvaluatorBase):
 class FinalSegmentation(EvaluatorBase):
     """Evaluator for classification."""
 
-    def __init__(self, cfg, meta_info, default_metrics=default_metrics, lab2cname=None, **kwargs):
+    def __init__(self, cfg, meta_info, metrics=default_metrics, **kwargs):
         super().__init__(cfg)
         self._meta_info = meta_info
-        self.metrics = default_metrics
-        self._lab2cname = lab2cname
+        self._lab2cname = meta_info["dataset_info"]["labels"]
+        self.metrics = metrics
         self.output_dir = cfg.OUTPUT_DIR
-        self.num_classes  = len(lab2cname)
+        self.num_classes  = len(self._lab2cname)
 
         self._mean_evaludation_dict = {}
         self._evaluation_dict = {}
         self.exp_distance = "Distance"
-        
-        if cfg.TEST.PER_CLASS_RESULT:
-            assert lab2cname is not None
-            self._per_class_res = defaultdict(list)
 
     def reset(self):
         self._mean_evaludation_dict = {}
         self._evaluation_dict = {}
 
     def process(self, mo, gt, case_name):
-        case_meta = self._meta_info[case_name]['vox_space']
-        predict_np, label_np = mo.data.cpu(), gt.data.cpu()
+        case_meta= self._meta_info["case_info"][case_name]
+        case_spacing = case_meta['spacing']
+        case_orgsize = case_meta['org_size']
+        predict_np, label_np = mo.data.cpu().numpy(), gt.data.cpu().numpy()
+        predict_np, label_np = np.argmax(predict_np, axis=1)[0], label_np[0, 0]
+        predict_np, label_np = transform.resize(predict_np, case_orgsize, order=0), transform.resize(label_np, case_orgsize, order=0)
+        # print(np.sum(predict_np==1), np.sum(label_np==1), label_np.shape)
         evaluation_value = evaluate_single_case(predict_np, label_np,
-                                                meta_data=case_meta, metric_list=self.metrics)
-        self._evaluation_dict.update({case_name: evaluation_value})
+                                                case_name=case_name, voxel_spacing=case_spacing,
+                                                labels=self._lab2cname, metric_list=self.metrics)
+        temp_result_dict = {case_name: evaluation_value}
+        # print(temp_result_dict)
+        self._evaluation_dict.update(temp_result_dict)
 
     def evaluate(self):
         results = {}
@@ -206,19 +207,21 @@ class FinalSegmentation(EvaluatorBase):
                 temp_metric_list = [item[label][metric] for item in (self._evaluation_dict.values())]
                 temp_mean = np.mean(temp_metric_list)
                 temp_std = np.std(temp_metric_list)
+                self._mean_evaludation_dict[label][metric] = {}
                 self._mean_evaludation_dict[label][metric]["mean"] = temp_mean
                 self._mean_evaludation_dict[label][metric]["std"] = temp_std
                 if self.exp_distance in metric:
-                    results[label][metric] = f"{np.round(temp_mean, 2)} " + u"\u00B1" + f"{np.round(temp_std, 2)}"
+                    results[label][metric] = f"{np.round(temp_mean, 2)} " + u"\u00B1" + f" {np.round(temp_std, 2)}"
                 else:
-                    results[label][metric] = f"{np.round(temp_mean, 2)} " + u"\u00B1" + f"{np.round(temp_std, 2)}"
+                    results[label][metric] = f"{np.round(temp_mean, 2)} " + u"\u00B1" + f" {np.round(temp_std, 2)}"
 
         pf = pd.DataFrame.from_dict(results, orient='index')
         print('=> result\n', pf)
 
         ### save the summary result
-        pf.to_csv(osp.join(self.output_dir, '/summary_result.csv'))
-        with open(osp.join(self.output_dir, '/detail_result.json'), 'w') as f:
+        print(self.output_dir)
+        pf.to_csv(osp.join(self.output_dir, 'summary_result.csv'))
+        with open(osp.join(self.output_dir, 'detail_result.json'), 'w') as f:
             json.dump({"case_level": self._evaluation_dict,
                        "mean_level": self._mean_evaludation_dict}, f)
         return results

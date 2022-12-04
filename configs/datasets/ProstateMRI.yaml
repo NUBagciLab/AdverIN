@@ -1,7 +1,3 @@
-INPUT:
-  SIZE: (224, 224)
-  TRANSFORMS: ['random_flip', 'random_translation', 'normalize']
-
 DATASET:
   NAME: 'ProstateMRI'
 
