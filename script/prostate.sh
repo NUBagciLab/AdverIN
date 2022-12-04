@@ -52,7 +52,7 @@ cuda_device=0
 --config-file configs/trainers/${DATASET}.yaml \
 --output-dir output/dg/${DATASET}/${method}/${D3} & )
 
-(CUDA_VISIBLE_DEVICES=0 python MedSegDGSSL/tools/train.py \
+(CUDA_VISIBLE_DEVICES=5 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer Vanilla \
 --source-domains ${D1} ${D4} ${D3} ${D6} ${D5} \
@@ -62,7 +62,7 @@ cuda_device=0
 --config-file configs/trainers/${DATASET}.yaml \
 --output-dir output/dg/${DATASET}/${method}/${D2} & )
 
-(CUDA_VISIBLE_DEVICES=0 python MedSegDGSSL/tools/train.py \
+(CUDA_VISIBLE_DEVICES=6 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer Vanilla \
 --source-domains ${D4} ${D2} ${D3} ${D6} ${D5} \
