@@ -19,7 +19,7 @@ __all__ = [
     'mkdir_if_missing', 'check_isfile', 'read_json', 'write_json',
     'set_random_seed', 'download_url', 'read_image', 'collect_env_info',
     'listdir_nohidden', 'get_most_similar_str_to_a_from_b',
-    'check_availability', 'tolist_if_not'
+    'check_availability', 'tolist_if_not', 'remove_previous_model'
 ]
 
 
@@ -47,6 +47,11 @@ def check_isfile(fpath):
         warnings.warn('No file found at "{}"'.format(fpath))
     return isfile
 
+
+def remove_previous_model(folder):
+    for name in os.listdir(folder):
+        if 'model.pth.tar-' in name:
+            os.remove(os.path.join(folder, name))
 
 def read_json(fpath):
     """Read json file from a path."""

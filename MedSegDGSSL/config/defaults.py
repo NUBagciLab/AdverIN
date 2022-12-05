@@ -53,7 +53,6 @@ _C.DATASET = CN()
 # Directory where datasets are stored
 _C.DATASET.ROOT = ''
 _C.DATASET.NAME = ''
-_C.DATASET.NUM_CLASSES = 2
 # List of names of source domains
 _C.DATASET.SOURCE_DOMAINS = ()
 # List of names of target domains
@@ -118,7 +117,7 @@ _C.MODEL.NAME = 'basicunet'
 _C.MODEL.SPATIAL_DIMS = 2
 _C.MODEL.PATCH_SIZE = (384, 384)
 _C.MODEL.IN_CHANNELS = 1
-_C.MODEL.OUT_CHANNELS = _C.DATASET.NUM_CLASSES
+_C.MODEL.OUT_CHANNELS = 2
 _C.MODEL.FEATURES = [32, 32, 64, 128, 256, 32]
 _C.MODEL.NORM = ("instance", {"affine": True})
 _C.MODEL.DROPOUT = 0.3

@@ -11,6 +11,9 @@ from sklearn.metrics import confusion_matrix
 from .build import EVALUATOR_REGISTRY
 from MedSegDGSSL.metrics.accuracy import compute_dice
 from MedSegDGSSL.evaluation.case_evaluate import evaluate_single_case, default_metrics
+from MedSegDGSSL.utils.writter import write_2d_image, write_3d_image
+from MedSegDGSSL.utils.tools import mkdir_if_missing
+
 
 class EvaluatorBase:
     """Base evaluator."""
@@ -179,6 +182,8 @@ class FinalSegmentation(EvaluatorBase):
         self._evaluation_dict = {}
         self.exp_distance = "Distance"
 
+        self.writter = self.get_writer()
+
     def reset(self):
         self._mean_evaludation_dict = {}
         self._evaluation_dict = {}
@@ -197,6 +202,23 @@ class FinalSegmentation(EvaluatorBase):
         temp_result_dict = {case_name: evaluation_value}
         # print(temp_result_dict)
         self._evaluation_dict.update(temp_result_dict)
+
+        ## write image here
+        predict_folder = osp.join(self.output_dir, "out_image", "prediction")
+        label_folder = osp.join(self.output_dir, "out_image", "label")
+        mkdir_if_missing(predict_folder)
+        mkdir_if_missing(label_folder)
+        self.writter(predict_np, out_dir=predict_folder, 
+                     case_name=case_name, meta_info=case_meta)
+        self.writter(label_np, out_dir=label_folder, 
+                     case_name=case_name, meta_info=case_meta)
+    
+    def get_writer(self):
+        #### In the dataset discribution, the 3D image is using 4D tensor due to channel issue
+        if self._meta_info['dataset_info']["tensorImageSize"] == "4D":
+            return write_3d_image
+        else:
+            return write_2d_image
 
     def evaluate(self):
         results = {}
@@ -223,5 +245,5 @@ class FinalSegmentation(EvaluatorBase):
         pf.to_csv(osp.join(self.output_dir, 'summary_result.csv'))
         with open(osp.join(self.output_dir, 'detail_result.json'), 'w') as f:
             json.dump({"case_level": self._evaluation_dict,
-                       "mean_level": self._mean_evaludation_dict}, f)
+                       "mean_level": self._mean_evaludation_dict}, f, indent=4)
         return results

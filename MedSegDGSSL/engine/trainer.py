@@ -24,7 +24,7 @@ from MedSegDGSSL.optim import build_optimizer, build_lr_scheduler
 from MedSegDGSSL.utils import (
     MetricMeter, AverageMeter, tolist_if_not, count_num_param, load_checkpoint,
     save_checkpoint, mkdir_if_missing, resume_from_checkpoint,
-    load_pretrained_weights
+    load_pretrained_weights, remove_previous_model
 )
 from MedSegDGSSL.network import build_network
 from MedSegDGSSL.evaluation import build_evaluator, build_final_evaluator
@@ -246,7 +246,7 @@ class BaseTrainer(object):
                 self._optims[name].zero_grad()
 
     def model_backward(self, loss):
-        self.detect_anomaly(loss)
+        # self.detect_anomaly(loss)
         loss.backward()
 
     def model_update(self, names=None):
@@ -283,7 +283,7 @@ class SimpleTrainer(BaseTrainer):
         self.build_model()
         self.loss_func = self.get_loss_func()
         self.test_meta_info = self.dm.dataset.get_domain_meta(self.cfg.DATASET.TARGET_DOMAINS[0])
-        self._lab2cname = self.test_meta_info["dataset_info"]['labels']
+        self._lab2cname = self.dm.dataset._lab2cname
         self.evaluator = build_evaluator(cfg, lab2cname=self._lab2cname)
         self.best_result = 0
     
@@ -320,7 +320,8 @@ class SimpleTrainer(BaseTrainer):
         """
         potential_seg_loss_list = ["DiceLoss", "DiceCELoss", "DiceFocalLoss"]
         if self.cfg.LOSS in potential_seg_loss_list:
-            loss = getattr(losses, self.cfg.LOSS)(include_background=False, softmax=True, to_onehot_y=True)
+            loss = getattr(losses, self.cfg.LOSS)(include_background=False, softmax=True,
+                                                  to_onehot_y=True, batch=True)
             # loss = losses.DiceLoss(include_background=False, softmax=True, to_onehot_y=True)
         else:
             raise FileNotFoundError(f"loss type {self.cfg.LOSS} not support, only support {potential_seg_loss_list}")
@@ -394,13 +395,13 @@ class SimpleTrainer(BaseTrainer):
             if self.cfg.TRAIN.CHECKPOINT_FREQ > 0 else False
         )
         if meet_checkpoint_freq or last_epoch:
+            remove_previous_model(self.output_dir)
             self.save_model(self.epoch, self.output_dir)
 
             if do_test and self.cfg.TEST.FINAL_MODEL == "best_val":
                 curr_result = self.test(split="val")
                 is_best = curr_result > self.best_result
-
-                print('*'*32, 'load things here', curr_result, is_best)
+                
                 if is_best:
                     self.best_result = curr_result
                     self.save_model(
@@ -457,9 +458,6 @@ class SimpleTrainer(BaseTrainer):
 
         print(f"Evaluate on the *{self.cfg.DATASET.TARGET_DOMAINS}* set")
         
-        ###########################
-        ### Need to continue here
-        ###########################
         for batch_idx, batch in enumerate(data_loader):
             input, label, meta = self.parse_batch_evaluation(batch)
             output = self.model_volume_inference(input)

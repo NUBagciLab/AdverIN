@@ -3,6 +3,7 @@ Modified from https://github.com/KaiyangZhou/deep-person-reid
 """
 import pickle
 import shutil
+import os
 import os.path as osp
 import warnings
 from functools import partial

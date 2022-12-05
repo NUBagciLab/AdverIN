@@ -64,7 +64,7 @@ class DatasetBase(object):
         unlabel_files: list[{"images":img, "domain":domain}..]
         test_files: list[{"images":img, "labels":seg, "domain":domain}..]
     """
-    def __init__(self, data_dir:str, num_classes:int=2,
+    def __init__(self, data_dir:str, 
                        train_domains:list=None,
                        unlabel_domains:list=None,
                        val_domains:list=None,
@@ -76,7 +76,9 @@ class DatasetBase(object):
         self.unlabel_domains = unlabel_domains
         self.val_domains = val_domains
         self.test_domains = test_domains
-        self.num_classes = num_classes
+        ### These two should be decided by the detailed dataset
+        self._lab2cname = None
+        self.num_classes = None
         self.train_x, self.train_u, self.val, self.test = None, None, None, None
         self.check_domain()
         self.get_files()
