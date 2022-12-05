@@ -84,7 +84,7 @@ class BaseTrainer(object):
             sched_dict = None
             if self._scheds[name] is not None:
                 sched_dict = self._scheds[name].state_dict()
-
+            remove_previous_model(os.path.join(directory, name))
             save_checkpoint(
                 {
                     "state_dict": model_dict,
@@ -320,8 +320,8 @@ class SimpleTrainer(BaseTrainer):
         """
         potential_seg_loss_list = ["DiceLoss", "DiceCELoss", "DiceFocalLoss"]
         if self.cfg.LOSS in potential_seg_loss_list:
-            loss = getattr(losses, self.cfg.LOSS)(include_background=False, softmax=True,
-                                                  to_onehot_y=True, batch=True)
+            loss = getattr(losses, self.cfg.LOSS)(include_background=True, softmax=True,
+                                                  to_onehot_y=True, batch=False)
             # loss = losses.DiceLoss(include_background=False, softmax=True, to_onehot_y=True)
         else:
             raise FileNotFoundError(f"loss type {self.cfg.LOSS} not support, only support {potential_seg_loss_list}")
@@ -395,7 +395,6 @@ class SimpleTrainer(BaseTrainer):
             if self.cfg.TRAIN.CHECKPOINT_FREQ > 0 else False
         )
         if meet_checkpoint_freq or last_epoch:
-            remove_previous_model(self.output_dir)
             self.save_model(self.epoch, self.output_dir)
 
             if do_test and self.cfg.TEST.FINAL_MODEL == "best_val":

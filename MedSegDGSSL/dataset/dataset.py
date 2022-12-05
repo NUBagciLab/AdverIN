@@ -30,7 +30,7 @@ class TrainDatasetWarpper(Dataset):
         temp_data = np.load(temp_dict["data"])
         for key in self.keys:
             out_dict[key] = np.expand_dims(temp_data[key], axis=0)
-
+        # out_dict['data'] = (out_dict['data'] - np.mean(out_dict['data'])) / np.std(out_dict['data'])
         out_dict = self.transform(**out_dict)
 
         for key in self.keys:

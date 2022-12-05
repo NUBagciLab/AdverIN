@@ -49,9 +49,10 @@ def check_isfile(fpath):
 
 
 def remove_previous_model(folder):
-    for name in os.listdir(folder):
-        if 'model.pth.tar-' in name:
-            os.remove(os.path.join(folder, name))
+    if os.path.isdir(folder):
+        for name in os.listdir(folder):
+            if 'model.pth.tar-' in name:
+                os.remove(os.path.join(folder, name))
 
 def read_json(fpath):
     """Read json file from a path."""

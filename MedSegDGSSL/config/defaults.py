@@ -98,7 +98,7 @@ _C.DATALOADER.TRAIN_U.N_DOMAIN = 0
 
 # Setting for test data-loader
 _C.DATALOADER.TEST = CN()
-_C.DATALOADER.TEST.SAMPLER = 'SequentialSampler'
+_C.DATALOADER.TEST.SAMPLER = 'RandomSampler'
 _C.DATALOADER.TEST.BATCH_SIZE = 32
 
 ###########################
@@ -119,7 +119,7 @@ _C.MODEL.PATCH_SIZE = (384, 384)
 _C.MODEL.IN_CHANNELS = 1
 _C.MODEL.OUT_CHANNELS = 2
 _C.MODEL.FEATURES = [32, 32, 64, 128, 256, 32]
-_C.MODEL.NORM = ("instance", {"affine": True})
+_C.MODEL.NORM = ("BATCH", {"affine": False})
 _C.MODEL.DROPOUT = 0.3
 _C.MODEL.RETURN_FEATURES = False
 _C.MODEL.PRETRAINED = False
