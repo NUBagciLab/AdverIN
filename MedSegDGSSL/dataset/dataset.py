@@ -13,10 +13,14 @@ from torch.utils.data import Dataset
 
 
 class TrainDatasetWarpper(Dataset):
-    def __init__(self, data_files:list, transform, keys=("data", "seg")):
+    def __init__(self, data_files:list, transform, pos_ratio:float=0.33, keys=("data", "seg")):
         super().__init__()
         self.data_files = data_files
         self.transform = transform
+
+        # Pos_ratio is to balance the positive samples
+        # and negative samples ratio during training
+        self.pos_ratio = pos_ratio
         self.keys = keys
         self.dtype_dict ={'data': torch.float, 'seg': torch.long}
 
@@ -27,9 +31,14 @@ class TrainDatasetWarpper(Dataset):
         temp_dict = self.data_files[index]
         out_dict = {}
         
-        temp_data = np.load(temp_dict["data"])
+        if np.random.random() < self.pos_ratio:
+            temp_data = np.load(temp_dict["positive"])
+        else:
+            temp_data = np.load(temp_dict["data"])
+
         for key in self.keys:
             out_dict[key] = np.expand_dims(temp_data[key], axis=0)
+
         # out_dict['data'] = (out_dict['data'] - np.mean(out_dict['data'])) / np.std(out_dict['data'])
         out_dict = self.transform(**out_dict)
 

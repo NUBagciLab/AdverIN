@@ -22,6 +22,5 @@ def compute_dice(output, target):
     label_onehot.scatter_(dim=1, index=target.to(torch.long), value=1)
     label_onehot = torch.flatten(label_onehot, start_dim=2)
 
-    dice_value = (2*torch.sum(output_onehot*label_onehot, dim=2)+eps) / (torch.sum((label_onehot + output_onehot), dim=2) + eps)
-    dice_value = torch.mean(dice_value, dim=0)
+    dice_value = (2*torch.sum(output_onehot*label_onehot, dim=[0, 2])+eps) / (torch.sum((label_onehot + output_onehot), dim=[0, 2]) + eps)
     return dice_value

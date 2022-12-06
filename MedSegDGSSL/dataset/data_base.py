@@ -108,8 +108,14 @@ class DatasetBase(object):
             path_to_file = os.path.join(self.data_dir, domain)
             domain_idx = self.datum.get_domain_id(domain)
 
-            temp_file = [name for name in os.listdir(path_to_file) if name.endswith('.npz')]
-            temp_list = [{"data": os.path.abspath(os.path.join(self.data_dir, domain, item)), "domain": domain_idx} for item in temp_file]
+            with open(os.path.join(path_to_file, "meta.pickle"), 'rb') as f:
+                temp_meta = pickle.load(f)
+
+            temp_meta_pos_match = temp_meta['positive_match']
+            temp_file = list(temp_meta_pos_match.keys())
+            temp_list = [{"data": os.path.abspath(os.path.join(self.data_dir, domain, item)),
+                          "positive": os.path.abspath(os.path.join(self.data_dir, domain, temp_meta_pos_match[item])),
+                          "domain": domain_idx} for item in temp_file]
             data_list.extend(temp_list)
         return data_list
 

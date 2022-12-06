@@ -29,6 +29,7 @@ def image_preprocessor_2d(file_dict, out_dir, target_size, clip_percent=(0.5, 99
     meta_dict["file_type"] = file_type
     meta_dict["target_size"] = image.shape
     meta_dict["spacing"] = (1, 1)
+    meta_dict["meta"] = {}
 
     image_resize = transform.resize(image, target_size, order=1)
     image_min, image_max = np.percentile(image_resize, q=clip_percent[0]), np.percentile(image_resize, q=clip_percent[1])
@@ -39,7 +40,9 @@ def image_preprocessor_2d(file_dict, out_dir, target_size, clip_percent=(0.5, 99
         seg = skio.imread(file_dict["label"])
         seg_resize = transform.resize(seg, target_size, order=0)
         out_dict["seg"] = np.expand_dims(seg_resize.astype(np.int64), 0)
-
+    
+    meta_dict["pos_match"] = {}
+    meta_dict["pos_match"][case_name+".npz"] = case_name+".npz"
     np.savez(out_dir+".npz", **out_dict)
     return meta_dict
 
@@ -61,6 +64,7 @@ def image_preprocessor_3d_slice(file_dict, out_dir, target_size, clip_percent=(0
     meta_dict["target_size"] = image.shape
     meta_dict["spacing"] = image_org.GetSpacing()[::-1]
     meta_dict["meta"] = {}
+    meta_dict["pos_match"] = {}
     for key in image_org.GetMetaDataKeys():
         meta_dict["meta"][key] = image_org.GetMetaData(key)
     # For the z dimension, the axis size should not be changed
@@ -76,12 +80,26 @@ def image_preprocessor_3d_slice(file_dict, out_dir, target_size, clip_percent=(0
         seg[seg<0] = 0
         seg_resize = transform.resize(seg, target_size, order=0)
         out_dict["seg"] = seg_resize.astype(np.int64)
+        positive_slice = list(np.nonzero(np.sum(seg_resize, axis=(1, 2)) > 20.)[0])
+        len_pos = len(positive_slice)
 
     for i in range(image_resize.shape[0]):
         out_dict_slice = {"data": np.expand_dims(image_resize[i], 0)}
         if "label" in file_dict.keys():
             out_dict_slice.update({"seg": np.expand_dims(seg_resize[i], 0)})
+            if i not in positive_slice:
+                meta_dict["pos_match"][case_name + "_slice{:03d}.npz".format(i)] = \
+                    case_name + "_slice{:03d}.npz".format(positive_slice[i%len_pos])
+            else:
+                meta_dict["pos_match"][case_name + "_slice{:03d}.npz".format(i)] = \
+                    case_name + "_slice{:03d}.npz".format(i)
+        else:
+            meta_dict["pos_match"][case_name + "_slice{:03d}.npz".format(i)] = \
+                    case_name + "_slice{:03d}.npz".format(i)
         np.savez(out_dir+"_slice{:03d}.npz".format(i), **out_dict_slice)
+
+        
+
     meta_dict["depth"] = image_resize.shape[0]
     return meta_dict
 
@@ -117,6 +135,8 @@ def image_preprocessor_3d(file_dict, out_dir, target_size, clip_percent=(0.5, 99
         seg_resize = transform.resize(seg, target_size, order=0)
         out_dict["seg"] = np.expand_dims(seg_resize.astype(np.int64), 0)
 
+    meta_dict["pos_match"] = {}
+    meta_dict["pos_match"][case_name+".npz"] = case_name+".npz"
     np.savez(out_dir+".npz", **out_dict)
     return meta_dict
 
@@ -152,6 +172,8 @@ def image_preprocessor_3d_space(file_dict, out_dir, target_space, clip_percent=(
         seg_resize = transform.resize(seg, target_size, order=0)
         out_dict["seg"] = np.expand_dims(seg_resize.astype(np.int64), 0)
 
+    meta_dict["pos_match"] = {}
+    meta_dict["pos_match"][case_name+".npz"] = case_name+".npz"
     np.savez(out_dir+".npz", **out_dict)
     return meta_dict
 

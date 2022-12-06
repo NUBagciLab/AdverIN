@@ -97,8 +97,14 @@ class Preprocessor(object):
         for domain in self.domains:
             with Pool(processes=self.NUM_THREAD) as pool:
                 meta_list = pool.starmap(map_func, zip(file_dict[domain], outdir_dict[domain]))
-            meta_dict = {item['case_name']:item for item in meta_list}
-            out_dict = {'case_info':meta_dict, 'dataset_info': dataset_meta_dict[domain]}
+            
+            meta_dict, pos_match_dict = {}, {}
+            for item in meta_list:
+                meta_dict.update({item['case_name']:item})
+                pos_match_dict.update(item["pos_match"])
+            out_dict = {'case_info':meta_dict,
+                        'dataset_info': dataset_meta_dict[domain],
+                        'positive_match':pos_match_dict}
             with open(os.path.join(self.processed_dir, domain, "meta.pickle"), 'wb') as f:
                 pickle.dump(out_dict, f)
 

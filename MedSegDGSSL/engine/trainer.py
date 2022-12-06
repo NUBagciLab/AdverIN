@@ -252,6 +252,7 @@ class BaseTrainer(object):
     def model_update(self, names=None):
         names = self.get_model_names(names)
         for name in names:
+            torch.nn.utils.clip_grad_norm_(self._models[name].parameters(), 12)
             if self._optims[name] is not None:
                 self._optims[name].step()
 
@@ -320,7 +321,7 @@ class SimpleTrainer(BaseTrainer):
         """
         potential_seg_loss_list = ["DiceLoss", "DiceCELoss", "DiceFocalLoss"]
         if self.cfg.LOSS in potential_seg_loss_list:
-            loss = getattr(losses, self.cfg.LOSS)(include_background=True, softmax=True,
+            loss = getattr(losses, self.cfg.LOSS)(include_background=False, softmax=True,
                                                   to_onehot_y=True, batch=False)
             # loss = losses.DiceLoss(include_background=False, softmax=True, to_onehot_y=True)
         else:
