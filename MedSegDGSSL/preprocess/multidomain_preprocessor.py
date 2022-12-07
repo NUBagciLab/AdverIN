@@ -64,11 +64,14 @@ class Preprocessor(object):
                 temp_dataset_json = json.load(f)
             
             temp_file = temp_dataset_json.pop("training")
+            num_classes = len(temp_dataset_json['labels'])
             if "label" in temp_file[0].keys():
                 temp_file_list = [{"image": os.path.abspath(os.path.join(self.raw_dir, domain, item["image"])),
-                                    "label": os.path.abspath(os.path.join(self.raw_dir, domain, item["label"]))} for item in temp_file]
+                                    "label": os.path.abspath(os.path.join(self.raw_dir, domain, item["label"])),
+                                    "num_classes": num_classes} for item in temp_file]
             else:
-                temp_file_list = [{"image": os.path.abspath(os.path.join(self.raw_dir, domain, item["image"]))} for item in temp_file]
+                temp_file_list = [{"image": os.path.abspath(os.path.join(self.raw_dir, domain, item["image"])),
+                                    "num_classes": num_classes} for item in temp_file]
             
             temp_outdir_list = [os.path.abspath(os.path.join(self.processed_dir, domain, item["image"].split('/')[-1].split('.')[0])) for item in temp_file]
 
@@ -112,6 +115,6 @@ class Preprocessor(object):
 
 
 if __name__ == '__main__':
-    config_dir = '/home/zze3980/project/AdverHistAug/configs/preprcossors/ProstateMRI.yaml'
+    config_dir = '/home/zze3980/project/AdverHistAug/configs/preprcossors/Fundus.yaml'
     propressor = Preprocessor(config_dir)
     propressor()

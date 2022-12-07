@@ -39,25 +39,14 @@ def reset_cfg(cfg, args):
     if args.target_domains:
         cfg.DATASET.TARGET_DOMAINS = args.target_domains
 
-    if args.transforms:
-        cfg.INPUT.TRANSFORMS = args.transforms
-
     if args.trainer:
         cfg.TRAINER.NAME = args.trainer
-
-    if args.backbone:
-        cfg.MODEL.BACKBONE.NAME = args.backbone
-
-    if args.head:
-        cfg.MODEL.HEAD.NAME = args.head
 
     cfg.DATALOADER.TRAIN_X.BATCH_SIZE = args.batch_size
 
 def setup_cfg(args):
     cfg = get_cfg_default()
     reset_cfg(cfg, args)
-    if args.dataset_config_file:
-        cfg.merge_from_file(args.dataset_config_file)
     if args.config_file:
         cfg.merge_from_file(args.config_file)
     cfg.freeze()
@@ -125,25 +114,13 @@ if __name__ == '__main__':
         nargs='+',
         help='target domains for DA/DG'
     )
-    parser.add_argument(
-        '--transforms', type=str, nargs='+', help='data augmentation methods'
-    )
+
     parser.add_argument(
         '--config-file', type=str, default='', help='path to config file'
     )
     parser.add_argument(
-        '--dataset-config-file',
-        type=str,
-        default='',
-        help='path to config file for dataset setup'
-    )
-    parser.add_argument(
         '--trainer', type=str, default='', help='name of trainer'
     )
-    parser.add_argument(
-        '--backbone', type=str, default='', help='name of CNN backbone'
-    )
-    parser.add_argument('--head', type=str, default='', help='name of head')
     parser.add_argument(
         '--eval-only', action='store_true', help='evaluation only'
     )

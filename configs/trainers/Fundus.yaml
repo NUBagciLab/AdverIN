@@ -1,5 +1,5 @@
 DATASET:
-  NAME: 'ProstateMRI'
+  NAME: 'Fundus'
 
 MODEL:
   NAME: 'monaiunet'
@@ -9,7 +9,6 @@ MODEL:
   FEATURES: [32, 32, 64, 64, 128, 128, 256]
   STRIDES: [2, 2, 2, 2, 2, 2]
   DROPOUT: 0.3
-  NORM: 'INSTANCE'
 
 DATALOADER:
   TRAIN_X:
