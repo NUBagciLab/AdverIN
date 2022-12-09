@@ -13,7 +13,7 @@ import torch.nn as nn
 import numpy as np
 import pickle
 import monai
-from monai.inferers import SliceInferer
+from monai.inferers import SliceInferer, SlidingWindowInferer
 import monai.losses as losses
 from collections import OrderedDict
 from torch.utils.tensorboard import SummaryWriter
@@ -321,7 +321,7 @@ class SimpleTrainer(BaseTrainer):
         """
         potential_seg_loss_list = ["DiceLoss", "DiceCELoss", "DiceFocalLoss"]
         if self.cfg.LOSS in potential_seg_loss_list:
-            loss = getattr(losses, self.cfg.LOSS)(include_background=False, softmax=True,
+            loss = getattr(losses, self.cfg.LOSS)(include_background=True, softmax=True,
                                                   to_onehot_y=True, batch=False)
             # loss = losses.DiceLoss(include_background=False, softmax=True, to_onehot_y=True)
         else:
@@ -449,9 +449,14 @@ class SimpleTrainer(BaseTrainer):
         
         self.final_evaluator = build_final_evaluator(self.cfg, meta_info=self.test_meta_info)
         
-        self.slice_infer = SliceInferer(spatial_dim=0,
+        '''if self.cfg.DATA_IS_3D and self.cfg.TRAINING_IS_2D:
+            self.infer = SliceInferer(spatial_dim=0,
                                         roi_size=self.cfg.MODEL.PATCH_SIZE,
                                         sw_batch_size=self.cfg.DATALOADER.TEST.BATCH_SIZE)
+        else:'''
+        self.infer = SlidingWindowInferer(roi_size=self.cfg.MODEL.PATCH_SIZE,
+                                          sw_batch_size=self.cfg.DATALOADER.TEST.BATCH_SIZE,
+                                          overlap=0.5)
         self.final_evaluator.reset()
 
         data_loader = self.final_test_loader
@@ -472,7 +477,7 @@ class SimpleTrainer(BaseTrainer):
     def model_volume_inference(self, input):
         """ volume level model inference
         """
-        return self.slice_infer(input, self.model)
+        return self.infer(input, self.model)
 
     def parse_batch_test(self, batch):
         input = batch["data"]
@@ -487,6 +492,11 @@ class SimpleTrainer(BaseTrainer):
         input = batch["data"]
         label = batch["seg"]
         meta = batch["meta"]
+
+        if self.cfg.DATA_IS_3D and self.cfg.TRAINING_IS_2D:
+            # Use the depth as the batch dimension
+            input = input[0]
+            label = label[0]
 
         input = input.to(self.device)
         label = label.to(self.device)

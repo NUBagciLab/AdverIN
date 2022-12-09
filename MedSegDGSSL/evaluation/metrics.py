@@ -44,11 +44,20 @@ class ConfusionMatrix:
 
     def set_test(self, test):
 
+        if test is not None:
+            if not np.any(test):
+                center = tuple([int(s//2) for s in test.shape])
+                test[(center)] = True
         self.test = test
         self.reset()
 
     def set_reference(self, reference):
-
+         ### To address the none-prediction issue
+        # Just assert one pixel to maintain the surface distance calculation
+        if reference is not None:
+            if not np.any(reference):
+                center = tuple([int(s//2) for s in reference.shape])
+                reference[(center)] = True
         self.reference = reference
         self.reset()
 

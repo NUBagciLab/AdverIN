@@ -31,6 +31,10 @@ default_3D_augmentation_params = {
     "random_crop": False,
     "random_crop_dist_to_border": None,
 
+    "p_gaussian_noise": 0.1,
+    "p_contrast":0.1,
+    "contrast_range": (0.65, 1.5),
+
     "do_gamma": True,
     "gamma_retain_stats": True,
     "gamma_range": (0.7, 1.5),
@@ -38,6 +42,11 @@ default_3D_augmentation_params = {
 
     "do_mirror": True,
     "mirror_axes": (0, 1, 2),
+    
+    "do_res": True,
+    "p_resolution": 0.5,
+    "gaussian_range": (0.25, 1.5),
+    "sharp_range":(10, 30),
 
     "dummy_2D": False,
     "mask_was_used_for_normalization": None,

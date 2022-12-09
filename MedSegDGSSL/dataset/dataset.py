@@ -64,7 +64,7 @@ class EvalDatasetWarpper(Dataset):
 
     def __getitem__(self, index):
         temp_dict = self.data_files[index]
-        case_name = self.data_files[index].rsplit('/', 1)[-1].split('.', 1)[0]
+        case_name = temp_dict['data'].rsplit('/', 1)[-1].split('.', 1)[0]
         out_dict = {}
         temp_data = np.load(temp_dict["data"])
 
@@ -103,7 +103,7 @@ class Eval3DDatasetWarpperFrom2D(Dataset):
             for key in self.keys:
                 out_dict[key].append(temp_data[key])
         for key in self.keys:
-            out_dict[key] = torch.from_numpy(np.expand_dims(np.vstack(out_dict[key]), axis=0)).to(self.dtype_dict[key])
+            out_dict[key] = torch.from_numpy(np.stack(out_dict[key])).to(self.dtype_dict[key])
 
         out_dict["meta"] = self.meta_data["case_info"][case_name]
         return out_dict

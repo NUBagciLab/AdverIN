@@ -7,6 +7,7 @@ import json
 import pickle
 import yaml
 import functools as func
+import argparse
 
 from multiprocessing.pool import Pool
 
@@ -91,8 +92,10 @@ class Preprocessor(object):
                 map_func = func.partial(image_preprocessor_3d_space, target_space=self.target_space,
                                                                clip_percent=(0.5, 99.5))
             else:
+                assert "num_slice" in self.data_preprocess_config.keys(), "You should define the slice number"
+                num_slice = self.data_preprocess_config["num_slice"]
                 map_func = func.partial(image_preprocessor_3d_slice, target_size=self.target_size,
-                                                               clip_percent=(0.5, 99.5))
+                                                               clip_percent=(0.5, 99.5), num_slice=num_slice)
         else:
             map_func = func.partial(image_preprocessor_2d, target_size=self.target_size,
                                                                clip_percent=(0.5, 99.5))
@@ -113,8 +116,13 @@ class Preprocessor(object):
 
         print("Finished preprocessing")
 
+def get_parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config_dir', type=str, default='', help='path to dataset config')
+    args = parser.parse_args()
+    return args
 
 if __name__ == '__main__':
-    config_dir = '/home/zze3980/project/AdverHistAug/configs/preprcossors/Fundus.yaml'
-    propressor = Preprocessor(config_dir)
+    args = get_parse()
+    propressor = Preprocessor(args.config_dir)
     propressor()

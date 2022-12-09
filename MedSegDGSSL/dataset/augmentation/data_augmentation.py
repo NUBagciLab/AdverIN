@@ -15,9 +15,8 @@ from batchgenerators.transforms.noise_transforms import GaussianNoiseTransform, 
 from batchgenerators.transforms.resample_transforms import SimulateLowResolutionTransform
 from batchgenerators.transforms.spatial_transforms import SpatialTransform, MirrorTransform,SpatialTransform_2
 from batchgenerators.transforms.utility_transforms import RemoveLabelTransform, RenameTransform, NumpyToTensor
-
 from MedSegDGSSL.dataset.augmentation.augmentation_params import params_dict
-from MedSegDGSSL.dataset.augmentation.custom_transforms import RandCropByPosNegRatio
+from MedSegDGSSL.dataset.augmentation.custom_transforms import RandCropByPosNegRatio, RandAdjustResolution
 
 
 def get_default_train_augmentation(patch_size, params_key='3D'):
@@ -39,6 +38,8 @@ def get_default_train_augmentation(patch_size, params_key='3D'):
         independent_scale_for_each_axis=params.get("independent_scale_factor_for_each_axis")
     ))
 
+    tr_transforms.append(GaussianNoiseTransform(p_per_sample=params.get("p_gaussian_noise")))
+    tr_transforms.append(ContrastAugmentationTransform(contrast_range=params.get("contrast_range"), p_per_sample=params.get("p_contrast")))
     if params.get("do_gamma"):
         tr_transforms.append(
             GammaTransform(params.get("gamma_range"), False, True, retain_stats=params.get("gamma_retain_stats"),
@@ -47,6 +48,9 @@ def get_default_train_augmentation(patch_size, params_key='3D'):
     if params.get("do_mirror"):
         tr_transforms.append(MirrorTransform(params.get("mirror_axes")))
 
+    if params.get("do_res"):
+        tr_transforms.append(RandAdjustResolution(params.get("p_resolution"), params.get("gaussian_range"),
+                             params.get("sharp_range")))
     tr_transforms = Compose(tr_transforms)
     return tr_transforms
 
@@ -112,8 +116,11 @@ def get_dense_augmentation(patch_size, params_key='3D'):
     if params.get("do_mirror") or params.get("mirror"):
         tr_transforms.append(MirrorTransform(params.get("mirror_axes")))
 
-    tr_transforms.append(RemoveLabelTransform(-1, 0))
+    if params.get("do_res"):
+        tr_transforms.append(RandAdjustResolution(params.get("p_resolution"), params.get("gaussian_range"),
+                             params.get("sharp_range")))
 
+    tr_transforms.append(RemoveLabelTransform(-1, 0))
     tr_transforms = Compose(tr_transforms)
    
     return tr_transforms

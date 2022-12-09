@@ -4,6 +4,7 @@ To implement the custom transform
 """
 
 import numpy as np
+from scipy.ndimage import gaussian_filter
 
 from batchgenerators.transforms.abstract_transforms import AbstractTransform
 from batchgenerators.augmentations.crop_and_pad_augmentations import random_crop
@@ -122,7 +123,6 @@ class RandCropByPosNegRatio(AbstractTransform):
         self.margins = margins
         self.crop_size = crop_size
         self.pos_neg_ratio = pos / (pos + neg)
-        pass
 
     def __call__(self, **data_dict):
         data = data_dict.get(self.data_key)
@@ -139,6 +139,36 @@ class RandCropByPosNegRatio(AbstractTransform):
 
         return data_dict
 
+
+class RandAdjustResolution(AbstractTransform):
+    """ Random Crop volume or spatial according to the positive / negative ratio
+    """
+    def __init__(self, prob=0.5, gaussain_range=(0.25, 1.5), 
+                       sharp_range=(5, 30), data_key="data"):
+        self.data_key = data_key
+        self.gaussian_range = gaussain_range
+        self.sharp_range = sharp_range
+        self.prob = prob
+
+    def __call__(self, **data_dict):
+        if np.random.random() > self.prob:
+            return data_dict
+
+        data = data_dict.get(self.data_key)
+    
+        gaussian_std = np.random.random()*(self.gaussian_range[1]-self.gaussian_range[0]) + \
+                        self.gaussian_range[0]
+        image_blur = gaussian_filter(data, sigma=gaussian_std, order=0)
+        
+        if np.random.random() < 0.5:
+            data_dict[self.data_key] = image_blur
+        else:
+            image_blur2 = gaussian_filter(image_blur, sigma=gaussian_std, order=0)
+            image_sharp = image_blur + \
+                (image_blur - image_blur2)*(np.random.random()*(self.sharp_range[1]-self.sharp_range[0])+self.sharp_range[0])
+            data_dict[self.data_key] = image_sharp
+        
+        return data_dict
 
 if __name__ == "__main__":
     seg = np.zeros((1, 1, 32, 256, 256))

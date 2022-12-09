@@ -11,7 +11,9 @@ import SimpleITK as sitk
 
 def write_2d_image(image_np:np.array, out_dir:str, 
                    case_name:str, meta_info=None):
-    skio.imsave(image_np, os.path.join(out_dir, case_name+'.png'))
+    num_classes = meta_info["meta"]['num_classes']
+    skio.imsave(os.path.join(out_dir, case_name+'.png'),
+                np.round(255*image_np/num_classes).astype(np.uint8))
 
 def write_3d_image(image_np:np.array, out_dir:str, 
                    case_name:str, meta_info=None):

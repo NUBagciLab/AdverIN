@@ -38,6 +38,7 @@ def image_preprocessor_2d(file_dict, out_dir, target_size, clip_percent=(0.5, 99
     out_dict["data"] = image_resize.astype(np.float32)
 
     num_classes = file_dict['num_classes']
+    meta_dict["meta"]['num_classes'] = num_classes
     if "label" in file_dict.keys():
         # For PNG you need to transfer them to corresponding label
         seg = skio.imread(file_dict["label"], as_gray=True).astype(np.float32) / 255
@@ -50,7 +51,7 @@ def image_preprocessor_2d(file_dict, out_dir, target_size, clip_percent=(0.5, 99
     np.savez(out_dir+".npz", **out_dict)
     return meta_dict
 
-def image_preprocessor_3d_slice(file_dict, out_dir, target_size, clip_percent=(0.5, 99.5)):
+def image_preprocessor_3d_slice(file_dict, out_dir, target_size, clip_percent=(0.5, 99.5), num_slice:int=1):
     ### This one is to support the nii, dicom ... 3d data tyle
     # file dict should be like {"image":image_dir, "label":label_dir}
     # note that the resize transform will be limited with xy plane
@@ -87,8 +88,10 @@ def image_preprocessor_3d_slice(file_dict, out_dir, target_size, clip_percent=(0
         positive_slice = list(np.nonzero(np.sum(seg_resize, axis=(1, 2)) > 20.)[0])
         len_pos = len(positive_slice)
 
-    for i in range(image_resize.shape[0]):
-        out_dict_slice = {"data": np.expand_dims(image_resize[i], 0)}
+    depth = image_resize.shape[0]
+    for i in range(depth):
+        slice_list = [max(min(i-num_slice//2+idx, depth-1), 0) for idx in range(num_slice)]
+        out_dict_slice = {"data": image_resize[slice_list]}
         if "label" in file_dict.keys():
             out_dict_slice.update({"seg": np.expand_dims(seg_resize[i], 0)})
             if i not in positive_slice:
@@ -102,9 +105,7 @@ def image_preprocessor_3d_slice(file_dict, out_dir, target_size, clip_percent=(0
                     case_name + "_slice{:03d}.npz".format(i)
         np.savez(out_dir+"_slice{:03d}.npz".format(i), **out_dict_slice)
 
-        
-
-    meta_dict["depth"] = image_resize.shape[0]
+    meta_dict["depth"] = depth
     return meta_dict
 
 def image_preprocessor_3d(file_dict, out_dir, target_size, clip_percent=(0.5, 99.5)):

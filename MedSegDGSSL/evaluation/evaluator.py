@@ -193,7 +193,12 @@ class FinalSegmentation(EvaluatorBase):
         case_spacing = case_meta['spacing']
         case_orgsize = case_meta['org_size']
         predict_np, label_np = mo.data.cpu().numpy(), gt.data.cpu().numpy()
-        predict_np, label_np = np.argmax(predict_np, axis=1)[0], label_np[0, 0]
+        predict_np, label_np = np.argmax(predict_np, axis=1), label_np[:, 0]
+
+        # For squeezing the batch size direction if needed
+        if predict_np.shape[0] == 1:
+            predict_np, label_np = predict_np[0], label_np[0]
+        # print('Before', predict_np.shape)
         predict_np, label_np = transform.resize(predict_np, case_orgsize, order=0), transform.resize(label_np, case_orgsize, order=0)
         # print(np.sum(predict_np==1), np.sum(label_np==1), label_np.shape)
         evaluation_value = evaluate_single_case(predict_np, label_np,
