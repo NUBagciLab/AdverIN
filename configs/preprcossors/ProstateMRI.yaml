@@ -1,4 +1,5 @@
 data_dir: "/data/datasets/zheyuan/DGFramework/ProstateMRI"
-out_tag: "2DSlice"
+out_tag: "2DSlice3"
 file_type: "nii.gz"
 target_size: [384, 384]
+num_slice: 3

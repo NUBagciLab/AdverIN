@@ -1,6 +1,6 @@
 from .mmd import MaximumMeanDiscrepancy
 from .dsbn import DSBN1d, DSBN2d
-from .mixup import mixup
+from .mixup import MixUp
 from .mixstyle import MixStyle
 from .transnorm import TransNorm1d, TransNorm2d
 from .sequential2 import Sequential2

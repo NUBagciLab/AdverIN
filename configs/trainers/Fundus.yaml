@@ -1,3 +1,6 @@
+DATA_IS_3D: False
+TRAINING_IS_2D: True
+
 DATASET:
   NAME: 'Fundus'
 
@@ -9,6 +12,7 @@ MODEL:
   FEATURES: [32, 32, 64, 64, 128, 128, 256]
   STRIDES: [2, 2, 2, 2, 2, 2]
   DROPOUT: 0.3
+  NORM: 'INSTANCE'
 
 DATALOADER:
   TRAIN_X:

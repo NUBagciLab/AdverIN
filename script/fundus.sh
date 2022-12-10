@@ -7,7 +7,7 @@ D3=Domain3
 D4=Domain4
 
 SEED=0
-method=instance_norm
+method=better_aug
 cuda_device=0
 
 (CUDA_VISIBLE_DEVICES=0 python MedSegDGSSL/tools/train.py \

@@ -1,5 +1,5 @@
 #!/bin/bash
-DATA=/data/datasets/zheyuan/DGFramework/ProstateMRI/processed/2DSlice
+DATA=/data/datasets/zheyuan/DGFramework/ProstateMRI/processed/2DSlice3
 DATASET=ProstateMRI
 D1=BIDMC
 D2=BMC
@@ -9,7 +9,7 @@ D5=UCL
 D6=RUNMC
 
 SEED=0
-method=better_aug
+method=slice3_smallerbatch
 cuda_device=0
 
 (CUDA_VISIBLE_DEVICES=0 python MedSegDGSSL/tools/train.py \

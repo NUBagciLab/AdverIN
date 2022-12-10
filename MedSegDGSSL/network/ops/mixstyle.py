@@ -1,6 +1,6 @@
-import random
 import torch
 import torch.nn as nn
+import numpy as np
 
 
 class MixStyle(nn.Module):
@@ -10,15 +10,15 @@ class MixStyle(nn.Module):
       Zhou et al. Domain Generalization with MixStyle. ICLR 2021.
     """
 
-    def __init__(self, p=0.5, alpha=0.1, eps=1e-6):
+    def __init__(self, prob=0.5, alpha=0.1, eps=1e-6):
         """
         Args:
-          p (float): probability of using MixStyle.
+          prob (float): probability of using MixStyle.
           alpha (float): parameter of the Beta distribution.
           eps (float): scaling parameter to avoid numerical issues.
         """
         super().__init__()
-        self.p = p
+        self.p = prob
         self.beta = torch.distributions.Beta(alpha, alpha)
         self.eps = eps
         self.alpha = alpha
@@ -30,7 +30,7 @@ class MixStyle(nn.Module):
         if not self.training:
             return x
 
-        if random.random() > self.p:
+        if np.random.random() > self.p:
             return x
 
         B = x.size(0)
@@ -61,7 +61,7 @@ class MixStyle2(nn.Module):
       Zhou et al. Domain Generalization with MixStyle. ICLR 2021.
     """
 
-    def __init__(self, p=0.5, alpha=0.1, eps=1e-6):
+    def __init__(self, prob=0.5, alpha=0.1, eps=1e-6):
         """
         Args:
           p (float): probability of using MixStyle.
@@ -69,7 +69,7 @@ class MixStyle2(nn.Module):
           eps (float): scaling parameter to avoid numerical issues.
         """
         super().__init__()
-        self.p = p
+        self.prob = prob
         self.beta = torch.distributions.Beta(alpha, alpha)
         self.eps = eps
         self.alpha = alpha
@@ -82,10 +82,7 @@ class MixStyle2(nn.Module):
         For the input x, the first half comes from one domain,
         while the second half comes from the other domain.
         """
-        if not self.training:
-            return x
-
-        if random.random() > self.p:
+        if not self.training or np.random.random() > self.prob:
             return x
 
         B = x.size(0)
