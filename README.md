@@ -2,7 +2,7 @@
 
 **One PyTorch based Domain Generalization (DG) framework for Medical Image Segmentation**, including the data preprocessing, data augmentation, varies network implementations, different training methods and standard performance evaluation.
 
-**Why this framework?** Well, unlike the natural image tasks, the medical image segmentation performance for domain generalization might be very different when using different data preprocessing, data augmentation or different training methods. Many previous works lacks fair comparasion and results can hardly be repeated by community.
+**Why this framework?** Well, unlike the natural image tasks, the medical image segmentation performance for domain generalization might be very different when using different data preprocessing, data augmentation or different training methods. Many previous works lacks fair comparasion and results can hardly be repeated by community. We want to achieve one fair evaluation for varies domain generalization methods.
 
 ### Supported Datasets
 Multidomain medical image segmentation tasks are limited. We collect the high quality datasets under multi-center setting in previous research as much as possible. We reorganize the dataset into the standard format for preprocessing and training. The supported dataset are listed as follow:
@@ -27,5 +27,7 @@ Varies optimizers including, SGD, Adam, AdamW, AMSGrad, RMSProp are supported.
 
 Different learning rate schedulers including Cosine, Multi-Step, Single-Step are supported.
 
-Segmentation Losses including Dice, DiceCE, DiceFocal are supported.
+Segmentation Losses including Dice, DiceCE, DiceFocal are also supported.
 
+### Standard Evaluation
+The standard evaluation methods are essential for domain generalization ability measurement. 
