@@ -79,7 +79,7 @@ CUDA_VISIBLE_DEVICES=${cuda_device} python MedSegDGSSL/tools/train.py \
 --output-dir output/dg/${DATASET}/${method}/${D6}
 ```
 ### Implemented Domain Generalization Method
-Here we implement several previous domain generalization methods, including
+Here we implement several previous domain generalization methods as follow. Detailed tutorials are providede in []
 
 **Data Augmentation**
 + 1
