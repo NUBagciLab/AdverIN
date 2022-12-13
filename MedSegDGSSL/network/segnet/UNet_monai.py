@@ -4,7 +4,7 @@ UNet monai version
 import monai
 from monai.networks.nets import UNet
 
-from .build import NETWORK_REGISTRY
+from MedSegDGSSL.network.segnet.build import NETWORK_REGISTRY
 
 @NETWORK_REGISTRY.register()
 def monaiunet(model_cfg):

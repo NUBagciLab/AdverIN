@@ -24,7 +24,7 @@ cuda_device=0
 (CUDA_VISIBLE_DEVICES=1 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer IntraTrainer \
---source-domains ${D1} ${D2} ${D3} ${D4} ${D5} ${D6}\
+--source-domains ${D1} ${D2} ${D3} ${D4} ${D5} ${D6} \
 --seed ${SEED} \
 --fold 1 \
 --config-file configs/trainers/${DATASET}.yaml \
@@ -33,7 +33,7 @@ cuda_device=0
 (CUDA_VISIBLE_DEVICES=3 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer IntraTrainer \
---source-domains ${D1} ${D2} ${D3} ${D4} ${D5} ${D6}\
+--source-domains ${D1} ${D2} ${D3} ${D4} ${D5} ${D6} \
 --seed ${SEED} \
 --fold 2 \
 --config-file configs/trainers/${DATASET}.yaml \

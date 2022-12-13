@@ -42,7 +42,7 @@ class RandConv(nn.Module):
                                   kernel_size=kernel_size, bias=False, padding=kernel_size//2)
         else:
             raise NameError(f"Random Conv {n_dim} Not implement now")
-        self.register_buffer("conv", self.conv)
+        # self.register_buffer("rand_conv", self.conv)
         self.random_func = self.get_random()
 
     @torch.no_grad()
