@@ -3,7 +3,7 @@
 ## Introduction
 **One PyTorch based Domain Generalization (DG) framework for Medical Image Segmentation**, including the data preprocessing, data augmentation, varies network implementations, different training methods and standard performance evaluation.
 
-**Why this framework?** Well, unlike the natural image tasks, the medical image segmentation performance for domain generalization might be very different when using different data preprocessing, data augmentation or different training methods. Many previous works lacks fair comparasion and results can hardly be repeated by community. We want to achieve one fair evaluation for varies domain generalization methods.
+**Why this framework?** Well, unlike the natural image tasks, the medical image segmentation performance for domain generalization might be very different when using different data preprocessing, data augmentation or different training methods. Many previous works lack fair comparasion and results can hardly be repeated by community. We want to achieve one fair evaluation for varies domain generalization methods.
 
 ### Supported Datasets
 Multidomain medical image segmentation tasks are limited. We collect the high quality datasets under multi-center setting in previous research as much as possible. We reorganize the dataset into the standard format for preprocessing and training. The supported dataset are listed as follow:
@@ -78,6 +78,29 @@ CUDA_VISIBLE_DEVICES=${cuda_device} python MedSegDGSSL/tools/train.py \
 --config-file configs/trainers/${DATASET}.yaml \
 --output-dir output/dg/${DATASET}/${method}/${D6}
 ```
+### Implemented Domain Generalization Method
+Here we implement several previous domain generalization methods, including
+
+**Data Augmentation**
++ 1
++ 2
++ 3
+
+**Style Mixing**
++ 1
++ 2
++ 3
+
+**Feature Alignment**
++ 1
++ 2
++ 3
+
+**Meta-Learning**
++ 1
+
+**Self-Challenging**
++ 1
 
 ### Add New Network
 We can add the new segmentation network easily (we use the unet implementation of MONAI as example) as follow:
