@@ -30,4 +30,4 @@ Different learning rate schedulers including Cosine, Multi-Step, Single-Step are
 Segmentation Losses including Dice, DiceCE, DiceFocal are also supported.
 
 ### Standard Evaluation
-The standard evaluation methods are essential for domain generalization ability measurement. 
+The standard evaluation methods are essential for domain generalization ability measurement. We provide automatic evaluation using varies metrics including  "Dice", "Jaccard", "Precision", "Recall", "Accuracy", "Hausdorff Distance 95", "Avg. Symmetric Surface Distance". Note that for fair comparasion evaluation is based on case-level, for example, each 3D case rather than the slice of 3D is considered as one sample.
