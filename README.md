@@ -1,4 +1,4 @@
-# Segmentation Generalization Framework for Medical Image
+# Domain Generalization Framework for Medical Image Segmentation
 
 ## Introduction
 **One PyTorch based Domain Generalization (DG) framework for Medical Image Segmentation**, including the data preprocessing, data augmentation, varies network implementations, different training methods and standard performance evaluation.
