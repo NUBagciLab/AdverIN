@@ -46,7 +46,7 @@ conda create -y -n medsegdg python=3.8
 conda activate medsegdg
 conda install pytorch torchvision torchaudio pytorch-cuda=11.1 -c pytorch -c nvidia
 # Install the required packages
-pip install -r requirements
+pip install -r requirements.txt
 python setup.py install
 ```
 
