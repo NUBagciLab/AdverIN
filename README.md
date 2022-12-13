@@ -143,7 +143,6 @@ class NewTrainer(TrainerX):
     def forward_backward(self, batch):
         input, label = self.parse_batch_train(batch)
         output = self.model(input)
-        #print(input.shape, torch.sum(label))
         loss = self.loss_func(output, label)
         self.model_backward_and_update(loss)
         loss_summary = {
