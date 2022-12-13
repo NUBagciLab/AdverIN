@@ -32,6 +32,9 @@ def reset_cfg(cfg, args):
 
     if args.seed:
         cfg.SEED = args.seed
+    
+    if args.fold:
+        cfg.DATASET.FOLD = args.fold
 
     if args.source_domains:
         cfg.DATASET.SOURCE_DOMAINS = args.source_domains
@@ -95,6 +98,12 @@ if __name__ == '__main__':
         type=int,
         default=1,
         help='only positive value enables a fixed seed'
+    )
+    parser.add_argument(
+        '--fold',
+        type=int,
+        default=0,
+        help='fold for cross validation'
     )
     parser.add_argument(
         '--batch_size',

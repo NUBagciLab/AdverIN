@@ -7,9 +7,11 @@ import json
 import pickle
 import yaml
 import functools as func
+import numpy as np
 import argparse
 
 from multiprocessing.pool import Pool
+from sklearn.model_selection import KFold
 
 from MedSegDGSSL.preprocess.utils import (image_preprocessor_2d, 
                               image_preprocessor_3d, image_preprocessor_3d_slice, 
@@ -53,6 +55,10 @@ class Preprocessor(object):
             self.target_space = tuple(self.data_preprocess_config["target_space"])
         else:
             self.target_size = tuple(self.data_preprocess_config["target_size"])
+        
+        self.fold_nums:int = 3
+        if "fold_nums" in self.data_preprocess_config.keys():
+            self.fold_nums = int(self.data_preprocess_config["fold_nums"])
 
     def generate_mapfiles(self):
         file_dict = {}
@@ -83,6 +89,28 @@ class Preprocessor(object):
             dataset_meta_dict[domain] = temp_dataset_json
         return file_dict, outdir_dict, dataset_meta_dict
     
+    def kfold_split(self, data_dict):
+        """Split the whole dataset files according to the case name
+        Ensure the files from one case not participate the train and test at the same time
+        data_dict: the whole data dict case_name:files
+        """
+        splits = {}
+        case_list = list(data_dict.keys())
+        kf = KFold(n_splits=self.fold_nums)
+        for i, (train_id, test_id) in enumerate(kf.split(case_list)):
+            splits[i] = {}
+            train_keys = list(np.array(case_list)[train_id])
+            test_keys = list(np.array(case_list)[test_id])
+            train_files = []
+            for key in train_keys:
+                train_files.extend(data_dict[key])
+            test_files = []
+            for key in test_keys:
+                test_files.extend(data_dict[key])
+            splits[i]['train'] = train_files
+            splits[i]['test'] = test_files
+
+        return splits
 
     def __call__(self):
         file_dict, outdir_dict, dataset_meta_dict = self.generate_mapfiles()
@@ -105,12 +133,15 @@ class Preprocessor(object):
                 meta_list = pool.starmap(map_func, zip(file_dict[domain], outdir_dict[domain]))
             
             meta_dict, pos_match_dict = {}, {}
+            data_dict = {}
             for item in meta_list:
+                data_dict[item['case_name']] = list(item["pos_match"].keys())
                 meta_dict.update({item['case_name']:item})
                 pos_match_dict.update(item["pos_match"])
             out_dict = {'case_info':meta_dict,
                         'dataset_info': dataset_meta_dict[domain],
                         'positive_match':pos_match_dict}
+            out_dict['kfold_split'] = self.kfold_split(data_dict=data_dict)
             with open(os.path.join(self.processed_dir, domain, "meta.pickle"), 'wb') as f:
                 pickle.dump(out_dict, f)
 

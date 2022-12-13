@@ -1,5 +1,5 @@
 #!/bin/bash
-DATA=/data/datasets/zheyuan/DGFramework/ProstateMRI/processed/2DSlice3
+DATA=/data/datasets/DGFramework/ProstateMRI/processed/2DSlice3
 DATASET=ProstateMRI
 D1=BIDMC
 D2=BMC

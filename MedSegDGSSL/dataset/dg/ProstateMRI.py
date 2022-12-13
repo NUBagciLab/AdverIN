@@ -13,6 +13,7 @@ class ProstateMRI(DatasetBase):
     dataset_name = 'ProstateMRI'
     domains = ["BMC", "HK", "I2CVB", "UCL", "RUNMC", "BIDMC"]
     labels = {"0": "Background", "1": "Prostate"}
+    data_shape = "3D"
     def __init__(self, cfg):
 
         super().__init__(data_dir=cfg.DATASET.ROOT,

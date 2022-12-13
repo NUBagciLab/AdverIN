@@ -29,9 +29,11 @@ from MedSegDGSSL.utils import (
 from MedSegDGSSL.network import build_network
 from MedSegDGSSL.evaluation import build_evaluator, build_final_evaluator
 
+
 class SimpleNet(nn.Module):
     def __init__(self) -> None:
         super().__init__()
+
 
 class BaseTrainer(object):
     def __init__(self):
@@ -252,7 +254,7 @@ class BaseTrainer(object):
     def model_update(self, names=None):
         names = self.get_model_names(names)
         for name in names:
-            torch.nn.utils.clip_grad_norm_(self._models[name].parameters(), 12)
+            # torch.nn.utils.clip_grad_norm_(self._models[name].parameters(), 12)
             if self._optims[name] is not None:
                 self._optims[name].step()
 
@@ -283,7 +285,6 @@ class SimpleTrainer(BaseTrainer):
         self.build_data_loader()
         self.build_model()
         self.loss_func = self.get_loss_func()
-        self.test_meta_info = self.dm.dataset.get_domain_meta(self.cfg.DATASET.TARGET_DOMAINS[0])
         self._lab2cname = self.dm.dataset._lab2cname
         self.evaluator = build_evaluator(cfg, lab2cname=self._lab2cname)
         self.best_result = 0
@@ -443,11 +444,12 @@ class SimpleTrainer(BaseTrainer):
         return results['dice']
 
     @torch.no_grad()
-    def final_evaluation(self, split=None):
+    def final_evaluation(self, extra_name:str=''):
         """A generic final evaluation pipeline."""
         self.set_model_mode("eval")
         
-        self.final_evaluator = build_final_evaluator(self.cfg, meta_info=self.test_meta_info)
+        self.final_evaluator = build_final_evaluator(self.cfg, lab2cname=self._lab2cname,
+                                                     data_shape=self.dm.dataset.data_shape)
         
         '''if self.cfg.DATA_IS_3D and self.cfg.TRAINING_IS_2D:
             self.infer = SliceInferer(spatial_dim=0,
@@ -466,10 +468,9 @@ class SimpleTrainer(BaseTrainer):
         for batch_idx, batch in enumerate(data_loader):
             input, label, meta = self.parse_batch_evaluation(batch)
             output = self.model_volume_inference(input)
-            self.final_evaluator.process(output, label, meta['case_name'][0])
+            self.final_evaluator.process(output, label, meta)
 
-        results = self.final_evaluator.evaluate()
-        return results
+        self.final_evaluator.evaluate(extra_name=extra_name)
 
     def model_inference(self, input):
         return self.model(input)
@@ -491,7 +492,8 @@ class SimpleTrainer(BaseTrainer):
     def parse_batch_evaluation(self, batch):
         input = batch["data"]
         label = batch["seg"]
-        meta = batch["meta"]
+        # remove the batch-channel for meta information
+        meta = batch["meta"][0]
 
         if self.cfg.DATA_IS_3D and self.cfg.TRAINING_IS_2D:
             # Use the depth as the batch dimension

@@ -168,16 +168,20 @@ class Segmentation(EvaluatorBase):
 
 @EVALUATOR_REGISTRY.register()
 class FinalSegmentation(EvaluatorBase):
-    """Evaluator for classification."""
+    """Evaluator for classification.
+    Need to add domain support here
+    """
 
-    def __init__(self, cfg, meta_info, metrics=default_metrics, **kwargs):
+    def __init__(self, cfg, lab2cname, data_shape="3D", metrics=default_metrics, **kwargs):
         super().__init__(cfg)
-        self._meta_info = meta_info
-        self._lab2cname = meta_info["dataset_info"]["labels"]
+        self._lab2cname = lab2cname
         self.metrics = metrics
+        self._data_shape = data_shape
         self.output_dir = cfg.OUTPUT_DIR
+        self.output_dir_summary = osp.join(self.output_dir, "summary")
         self.num_classes  = len(self._lab2cname)
 
+        # This evaluation should be based on domain
         self._mean_evaludation_dict = {}
         self._evaluation_dict = {}
         self.exp_distance = "Distance"
@@ -188,10 +192,11 @@ class FinalSegmentation(EvaluatorBase):
         self._mean_evaludation_dict = {}
         self._evaluation_dict = {}
 
-    def process(self, mo, gt, case_name):
-        case_meta= self._meta_info["case_info"][case_name]
+    def process(self, mo, gt, case_meta):
+        case_name = case_meta['case_name']
         case_spacing = case_meta['spacing']
         case_orgsize = case_meta['org_size']
+        domain = case_meta["domain"]
         predict_np, label_np = mo.data.cpu().numpy(), gt.data.cpu().numpy()
         predict_np, label_np = np.argmax(predict_np, axis=1), label_np[:, 0]
 
@@ -206,11 +211,13 @@ class FinalSegmentation(EvaluatorBase):
                                                 labels=self._lab2cname, metric_list=self.metrics)
         temp_result_dict = {case_name: evaluation_value}
         # print(temp_result_dict)
-        self._evaluation_dict.update(temp_result_dict)
+        if domain not in self._evaluation_dict.keys():
+            self._evaluation_dict[domain] = {}
+        self._evaluation_dict[domain].update(temp_result_dict)
 
         ## write image here
-        predict_folder = osp.join(self.output_dir, "out_image", "prediction")
-        label_folder = osp.join(self.output_dir, "out_image", "label")
+        predict_folder = osp.join(self.output_dir, "out_image", domain, "prediction")
+        label_folder = osp.join(self.output_dir, "out_image", domain, "label")
         mkdir_if_missing(predict_folder)
         mkdir_if_missing(label_folder)
         self.writter(predict_np, out_dir=predict_folder, 
@@ -219,36 +226,38 @@ class FinalSegmentation(EvaluatorBase):
                      case_name=case_name, meta_info=case_meta)
     
     def get_writer(self):
-        #### In the dataset discribution, the 3D image is using 4D tensor due to channel issue
-        if self._meta_info['dataset_info']["tensorImageSize"] == "4D":
+        ### use data modality to distinguish
+        if self._data_shape == "3D":
             return write_3d_image
         else:
             return write_2d_image
 
-    def evaluate(self):
-        results = {}
-        for label in list(self._lab2cname.values()):
-            self._mean_evaludation_dict[label] = {}
-            results[label] = {}
-            for metric in self.metrics:
-                temp_metric_list = [item[label][metric] for item in (self._evaluation_dict.values())]
-                temp_mean = np.mean(temp_metric_list)
-                temp_std = np.std(temp_metric_list)
-                self._mean_evaludation_dict[label][metric] = {}
-                self._mean_evaludation_dict[label][metric]["mean"] = temp_mean
-                self._mean_evaludation_dict[label][metric]["std"] = temp_std
-                if self.exp_distance in metric:
-                    results[label][metric] = f"{np.round(temp_mean, 2)} " + u"\u00B1" + f" {np.round(temp_std, 2)}"
-                else:
-                    results[label][metric] = f"{np.round(temp_mean, 4)} " + u"\u00B1" + f" {np.round(temp_std, 4)}"
+    def evaluate(self, extra_name:str=''):
+        mkdir_if_missing(self.output_dir_summary)
 
-        pf = pd.DataFrame.from_dict(results, orient='index')
-        print('=> result\n', pf)
+        for domain in self._evaluation_dict.keys():
+            results = {}
+            for label in list(self._lab2cname.values()):
+                self._mean_evaludation_dict[label] = {}
+                results[label] = {}
+                for metric in self.metrics:
+                    temp_metric_list = [item[label][metric] for item in (self._evaluation_dict[domain].values())]
+                    temp_mean = np.mean(temp_metric_list)
+                    temp_std = np.std(temp_metric_list)
+                    self._mean_evaludation_dict[label][metric] = {}
+                    self._mean_evaludation_dict[label][metric]["mean"] = temp_mean
+                    self._mean_evaludation_dict[label][metric]["std"] = temp_std
+                    if self.exp_distance in metric:
+                        results[label][metric] = f"{np.round(temp_mean, 2)} " + u"\u00B1" + f" {np.round(temp_std, 2)}"
+                    else:
+                        results[label][metric] = f"{np.round(temp_mean, 4)} " + u"\u00B1" + f" {np.round(temp_std, 4)}"
 
-        ### save the summary result
-        print(self.output_dir)
-        pf.to_csv(osp.join(self.output_dir, 'summary_result.csv'))
-        with open(osp.join(self.output_dir, 'detail_result.json'), 'w') as f:
-            json.dump({"case_level": self._evaluation_dict,
-                       "mean_level": self._mean_evaludation_dict}, f, indent=4)
-        return results
+            pf = pd.DataFrame.from_dict(results, orient='index')
+            print('=> result\n', pf)
+
+            ### save the summary result
+            print(self.output_dir_summary, domain)
+            pf.to_csv(osp.join(self.output_dir_summary, f'{domain}_summary_result{extra_name}.csv'))
+            with open(osp.join(self.output_dir_summary, f'{domain}_detail_result{extra_name}.json'), 'w') as f:
+                json.dump({"case_level": self._evaluation_dict[domain],
+                           "mean_level": self._mean_evaludation_dict}, f, indent=4)

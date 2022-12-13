@@ -1,5 +1,5 @@
 #!/bin/bash
-DATA=/data/datasets/zheyuan/DGFramework/Fundus/processed/2D
+DATA=/data/datasets/DGFramework/Fundus/processed/2D
 DATASET=Fundus
 D1=Domain1
 D2=Domain2

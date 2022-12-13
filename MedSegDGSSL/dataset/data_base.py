@@ -59,7 +59,12 @@ class DatasetBase(object):
         unlabel_domains: domain for unlabeling data
         test_domains: domain for testing
     
-    Output:
+    Output: For domain generalization setting
+        train_files: list[{"images":img, "labels":seg, "domain":domain}..]
+        unlabel_files: list[{"images":img, "domain":domain}..]
+        test_files: list[{"images":img, "labels":seg, "domain":domain}..]
+    
+    Output: For kfold split setting
         train_files: list[{"images":img, "labels":seg, "domain":domain}..]
         unlabel_files: list[{"images":img, "domain":domain}..]
         test_files: list[{"images":img, "labels":seg, "domain":domain}..]
@@ -118,6 +123,31 @@ class DatasetBase(object):
                           "domain": domain_idx} for item in temp_file]
             data_list.extend(temp_list)
         return data_list
+    
+    def generate_kfold_data_list(self, domain_list, fold:int=0):
+        train_data_list = []
+        test_data_list = []
+        for domain in domain_list:
+            path_to_file = os.path.join(self.data_dir, domain)
+            domain_idx = self.datum.get_domain_id(domain)
+
+            with open(os.path.join(path_to_file, "meta.pickle"), 'rb') as f:
+                temp_meta = pickle.load(f)
+
+            temp_meta_pos_match = temp_meta['positive_match']
+            temp_file = list(temp_meta['kfold_split'][fold]["train"])
+            temp_list = [{"data": os.path.abspath(os.path.join(self.data_dir, domain, item)),
+                          "positive": os.path.abspath(os.path.join(self.data_dir, domain, temp_meta_pos_match[item])),
+                          "domain": domain_idx} for item in temp_file]
+            train_data_list.extend(temp_list)
+    
+            temp_file = list(temp_meta['kfold_split'][fold]["test"])
+            temp_list = [{"data": os.path.abspath(os.path.join(self.data_dir, domain, item)),
+                          "positive": os.path.abspath(os.path.join(self.data_dir, domain, temp_meta_pos_match[item])),
+                          "domain": domain_idx} for item in temp_file]
+            test_data_list.extend(temp_list)
+
+        return train_data_list, test_data_list
 
     def get_files(self):
         self.train_x = self.generate_domain_data_list(self.train_domains)
@@ -135,3 +165,9 @@ class DatasetBase(object):
             meta_data = pickle.load(f)
         
         return meta_data
+    
+    def set_kflod_split(self, fold:int=0):
+        self.train_x, self.test = self.generate_kfold_data_list(self.train_domains, fold)
+
+        if not self.test_domains:
+            self.test.extend(self.generate_domain_data_list(self.test_domains))

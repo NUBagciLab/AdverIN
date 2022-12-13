@@ -27,13 +27,13 @@ def build_data_loader(
         batch_size=batch_size,
         n_domain=n_domain
     )
-
+    num_workers = cfg.DATALOADER.NUM_WORKERS
     # Build data loader
     data_loader = DataLoader(
         dataset_wrapper(data_source, transform=tfm),
         batch_size=batch_size,
         sampler=sampler,
-        num_workers=cfg.DATALOADER.NUM_WORKERS,
+        num_workers=num_workers,
         drop_last=is_train,
         pin_memory=(torch.cuda.is_available() and cfg.USE_CUDA)
     )
@@ -57,6 +57,7 @@ def build_evaluation_loader(
     data_loader = DataLoader(
         dataset=dataset,
         batch_size=1,
+        collate_fn=collect_eval_fn,
         pin_memory=(torch.cuda.is_available() and cfg.USE_CUDA)
     )
 
@@ -71,10 +72,14 @@ class DataManager:
         custom_tfm_train=None,
         custom_tfm_test=None,
         custom_tfm_unlabel=None,
-        dataset_wrapper=None
+        dataset_wrapper=None,
+        set_kfold=False,
     ):
         # Load dataset
         dataset = build_dataset(cfg)
+
+        if set_kfold:
+            dataset.set_kflod_split(cfg.DATASET.FOLD)
 
         # Build transform
         if custom_tfm_train is None:

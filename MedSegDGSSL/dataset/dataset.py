@@ -52,10 +52,16 @@ class EvalDatasetWarpper(Dataset):
     def __init__(self, data_files:list, keys=("data", "seg")):
         super().__init__()
         self.data_files = data_files
-        self.folder_dir = data_files[0]["data"].rsplit('/', 1)[0]
-        with open(os.path.join(self.folder_dir, 'meta.pickle'), 'rb') as f:
-            self.meta_data = pickle.load(f)
-        self.case_names = list(self.meta_data["case_info"].keys())
+        self.domains_map = {file['data']:file['data'].rsplit('/', 2)[-2] for file in data_files}
+        self.domains = list(set(self.domains_map.values()))
+        self.folder_dir = data_files[0]["data"].rsplit('/', 2)[0]
+        self.meta_data_maps = {}
+        self.case_names = []
+        for domain in self.domains:
+            with open(os.path.join(self.folder_dir, domain, 'meta.pickle'), 'rb') as f:
+                meta_data = pickle.load(f)
+            self.meta_data_maps[domain] = meta_data
+
         self.keys = keys
         self.dtype_dict ={'data': torch.float, 'seg': torch.long}
 
@@ -64,28 +70,37 @@ class EvalDatasetWarpper(Dataset):
 
     def __getitem__(self, index):
         temp_dict = self.data_files[index]
-        case_name = temp_dict['data'].rsplit('/', 1)[-1].split('.', 1)[0]
+        temp_split = temp_dict['data'].rsplit('/', 2)
+        domain = temp_split[-2]
+        case_name = temp_split[-1].split('.', 1)[0]
         out_dict = {}
         temp_data = np.load(temp_dict["data"])
 
         for key in self.keys:
             out_dict[key] = torch.from_numpy(temp_data[key]).to(self.dtype_dict[key])
 
-        out_dict["meta"] = self.meta_data["case_info"][case_name]
+        out_dict["meta"] = self.meta_data_maps[domain]["case_info"][case_name]
+        out_dict["meta"]["domain"] = domain
         return out_dict
 
 
 class Eval3DDatasetWarpperFrom2D(Dataset):
-    """Well this is not the style I like
+    """Well this is not the style I like,looks dirty
     """
     def __init__(self, data_files:list, keys=("data", "seg")):
         super().__init__()
         self.data_files = data_files
-        # Just folder dir is enough for one domain testing
-        self.folder_dir = data_files[0]["data"].rsplit('/', 1)[0]
-        with open(os.path.join(self.folder_dir, 'meta.pickle'), 'rb') as f:
-            self.meta_data = pickle.load(f)
-        self.case_names = list(self.meta_data["case_info"].keys())
+        self.domains_map = {file['data'].rsplit('_', 1)[0]:file['data'].rsplit('/', 2)[-2] for file in data_files}
+        self.domains = list(set(self.domains_map.values()))
+        self.folder_dir = data_files[0]["data"].rsplit('/', 2)[0]
+
+        self.meta_data_maps = {}
+        for domain in self.domains:
+            with open(os.path.join(self.folder_dir, domain, 'meta.pickle'), 'rb') as f:
+                meta_data = pickle.load(f)
+            self.meta_data_maps[domain] = meta_data
+
+        self.case_names = list(self.domains_map.keys())
         self.keys = keys
         self.dtype_dict ={'data': torch.float, 'seg': torch.long}
 
@@ -93,21 +108,35 @@ class Eval3DDatasetWarpperFrom2D(Dataset):
         return len(self.case_names)
 
     def __getitem__(self, index):
-        case_name = self.case_names[index]
+        temp_dir = self.case_names[index]
+        temp_split = temp_dir.rsplit('/', 2)
+        domain, case_name = temp_split[-2], temp_split[-1]
+
         out_dict = {}
         for key in self.keys:
             out_dict[key] = []
-        for i in range(self.meta_data["case_info"][case_name]["depth"]):
-            temp_data = np.load(os.path.join(self.folder_dir,
-                                          case_name+"_slice{:03d}.npz".format(i)))
+        for i in range(self.meta_data_maps[domain]["case_info"][case_name]["depth"]):
+            temp_data = np.load(os.path.join(self.folder_dir, domain,
+                                             case_name+"_slice{:03d}.npz".format(i)))
             for key in self.keys:
                 out_dict[key].append(temp_data[key])
         for key in self.keys:
             out_dict[key] = torch.from_numpy(np.stack(out_dict[key])).to(self.dtype_dict[key])
 
-        out_dict["meta"] = self.meta_data["case_info"][case_name]
+        out_dict["meta"] = self.meta_data_maps[domain]["case_info"][case_name]
+        out_dict["meta"]["domain"] = domain
         return out_dict
 
+data_key = ("data", "seg")
+
+def collect_eval_fn(data):
+    out_dict = {}
+    for key in data[0].keys():
+        if key in data_key:
+            out_dict[key] = torch.stack([item[key] for item in data], dim=0)
+        else:
+            out_dict[key] = [item[key] for item in data]
+    return out_dict
 
 if __name__ == '__main__':
     from MedSegDGSSL.dataset.augmentation.data_augmentation import get_default_train_augmentation

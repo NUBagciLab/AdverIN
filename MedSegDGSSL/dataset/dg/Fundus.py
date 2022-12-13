@@ -13,6 +13,7 @@ class Fundus(DatasetBase):
     dataset_name = 'Fundus'
     domains = ["Domain1", "Domain2", "Domain3", "Domain4"]
     labels = {"0": "background", "1": "Optic Disc", "2": "Optic Cup"}
+    data_shape = "2D"
     def __init__(self, cfg):
 
         super().__init__(data_dir=cfg.DATASET.ROOT,
