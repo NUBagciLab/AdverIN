@@ -68,7 +68,7 @@ SEED=0
 method=baseline
 cuda_device=0
 
-# train use 5 domain and test on the rest
+# train with 5 domain and test on the rest
 CUDA_VISIBLE_DEVICES=${cuda_device} python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer Vanilla \
