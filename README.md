@@ -39,7 +39,7 @@ The standard evaluation methods are essential for domain generalization ability 
 Clone the repo, create a conda environment and install the package
 ```bash
 # Clone the repo
-git clone git@github.com:freshman97/MedSeg_Generalization_Framework.git
+git clone https://github.com/freshman97/MedSeg_Generalization_Framework.git
 cd MedSeg_Generalization_Framework
 # Create the environment
 conda create -y -n medsegdg python=3.8
