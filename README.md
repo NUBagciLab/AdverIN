@@ -51,7 +51,7 @@ python setup.py install
 ```
 
 ### Run Training
-One training example
+One training example using the Prostate MRI dataset, more detailed tutorials for config setting are available in [].
 
 ```bash
 #!/bin/bash
