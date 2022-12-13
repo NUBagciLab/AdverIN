@@ -79,7 +79,7 @@ CUDA_VISIBLE_DEVICES=${cuda_device} python MedSegDGSSL/tools/train.py \
 --output-dir output/dg/${DATASET}/${method}/${D6}
 ```
 
-## Add New Network
+### Add New Network
 We can add the new segmentation network easily (we use the unet implementation of MONAI as example) as follow:
 
 ```Python
@@ -101,7 +101,7 @@ def monaiunet(model_cfg):
     return unet
 ```
 
-## Add New Dataset
+### Add New Dataset
 We can add the new dataset as follow, the dataset discription should includes name, domain, labels, and data type information:
 
 ```Python
@@ -130,7 +130,7 @@ class ProstateMRI(DatasetBase):
         self.num_classes = len(self.labels)
 ```
 
-## Add New Trainer
+### Add New Trainer
 We can add the new trainer easily as follow. Make sure you read the implementation of SimpleTrainer first before adding new trainer to understand where to change.
 
 ```Python
@@ -154,4 +154,4 @@ Citation here
 ```
 
 ## Acknowledgement
-We acknowledge the DASSL, MONAI, and BatchGenerator for their great contribution.
+We acknowledge the DASSL, MONAI, and BatchGenerator for their great contribution. 
