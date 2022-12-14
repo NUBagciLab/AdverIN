@@ -18,13 +18,70 @@ from typing import Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
-
 from MedSegDGSSL.network.segnet.build import NETWORK_REGISTRY
 
 from monai.networks.blocks.convolutions import Convolution, ResidualUnit
 from monai.networks.layers.factories import Act, Norm
+from monai.networks.layers.factories import Norm
 
-__all__ = ["UNet", "Unet"]
+__all__ = ["AttentionUnet"]
+
+
+class AttentionBlock(nn.Module):
+    def __init__(self, spatial_dims: int, f_int: int, f_g: int, f_l: int, norm: Norm.BATCH, dropout=0.0):
+        super().__init__()
+        self.W_g = nn.Sequential(
+            Convolution(
+                spatial_dims=spatial_dims,
+                in_channels=f_g,
+                out_channels=f_int,
+                kernel_size=1,
+                strides=1,
+                padding=0,
+                dropout=dropout,
+                conv_only=True,
+            ),
+            Norm[norm, spatial_dims](f_int),
+        )
+
+        self.W_x = nn.Sequential(
+            Convolution(
+                spatial_dims=spatial_dims,
+                in_channels=f_l,
+                out_channels=f_int,
+                kernel_size=1,
+                strides=1,
+                padding=0,
+                dropout=dropout,
+                conv_only=True,
+            ),
+            Norm[norm, spatial_dims](f_int),
+        )
+
+        self.psi = nn.Sequential(
+            Convolution(
+                spatial_dims=spatial_dims,
+                in_channels=f_int,
+                out_channels=1,
+                kernel_size=1,
+                strides=1,
+                padding=0,
+                dropout=dropout,
+                conv_only=True,
+            ),
+            Norm[norm, spatial_dims](1),
+            nn.Sigmoid(),
+        )
+
+        self.relu = nn.ReLU()
+
+    def forward(self, g: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+        g1 = self.W_g(g)
+        x1 = self.W_x(x)
+        psi: torch.Tensor = self.relu(g1 + x1)
+        psi = self.psi(psi)
+
+        return x * psi
 
 
 class UpConv(nn.Module):
@@ -49,6 +106,9 @@ class UpConv(nn.Module):
             dropout=dropout,
             is_transposed=True,
         )
+        self.attention = AttentionBlock(spatial_dims=spatial_dims,
+                                        f_g=out_channels, f_l=out_channels,
+                                        f_int=in_channels // 2, norm=norm)
         self.conv = Convolution(
             spatial_dims,
             2*out_channels,
@@ -79,6 +139,7 @@ class UpConv(nn.Module):
 
     def forward(self, x: torch.Tensor, skip: torch.Tensor) -> torch.Tensor:
         x: torch.Tensor = self.up(x)
+        skip = self.attention(g=x, x=skip)
         x = torch.cat([x, skip], dim=1)
         x = self.conv(x)
         return x
@@ -263,89 +324,24 @@ class Decoder(nn.Module):
         return out
 
 
-class UNet(nn.Module):
+
+class AttentionUNet(nn.Module):
     """
-    Enhanced version of UNet which has residual units implemented with the ResidualUnit class.
-    The residual part uses a convolution to change the input dimensions to match the output dimensions
-    if this is necessary but will use nn.Identity if not.
-    Refer to: https://link.springer.com/chapter/10.1007/978-3-030-12029-0_40.
-
-    Each layer of the network has a encode and decode path with a skip connection between them. Data in the encode path
-    is downsampled using strided convolutions (if `strides` is given values greater than 1) and in the decode path
-    upsampled using strided transpose convolutions. These down or up sampling operations occur at the beginning of each
-    block rather than afterwards as is typical in UNet implementations.
-
-    To further explain this consider the first example network given below. This network has 3 layers with strides
-    of 2 for each of the middle layers (the last layer is the bottom connection which does not down/up sample). Input
-    data to this network is immediately reduced in the spatial dimensions by a factor of 2 by the first convolution of
-    the residual unit defining the first layer of the encode part. The last layer of the decode part will upsample its
-    input (data from the previous layer concatenated with data from the skip connection) in the first convolution. this
-    ensures the final output of the network has the same shape as the input.
-
-    Padding values for the convolutions are chosen to ensure output sizes are even divisors/multiples of the input
-    sizes if the `strides` value for a layer is a factor of the input sizes. A typical case is to use `strides` values
-    of 2 and inputs that are multiples of powers of 2. An input can thus be downsampled evenly however many times its
-    dimensions can be divided by 2, so for the example network inputs would have to have dimensions that are multiples
-    of 4. In the second example network given below the input to the bottom layer will have shape (1, 64, 15, 15) for
-    an input of shape (1, 1, 240, 240) demonstrating the input being reduced in size spatially by 2**4.
+    Attention Unet based on
+    Otkay et al. "Attention U-Net: Learning Where to Look for the Pancreas"
+    https://arxiv.org/abs/1804.03999
 
     Args:
-        spatial_dims: number of spatial dimensions.
-        in_channels: number of input channels.
-        out_channels: number of output channels.
-        channels: sequence of channels. Top block first. The length of `channels` should be no less than 2.
-        strides: sequence of convolution strides. The length of `stride` should equal to `len(channels) - 1`.
-        kernel_size: convolution kernel size, the value(s) should be odd. If sequence,
-            its length should equal to dimensions. Defaults to 3.
-        up_kernel_size: upsampling convolution kernel size, the value(s) should be odd. If sequence,
-            its length should equal to dimensions. Defaults to 3.
-        num_res_units: number of residual units. Defaults to 0.
-        act: activation type and arguments. Defaults to PReLU.
-        norm: feature normalization type and arguments. Defaults to instance norm.
+        spatial_dims: number of spatial dimensions of the input image.
+        in_channels: number of the input channel.
+        out_channels: number of the output classes.
+        channels (Sequence[int]): sequence of channels. Top block first. The length of `channels` should be no less than 2.
+        strides (Sequence[int]): stride to use for convolutions.
+        kernel_size: convolution kernel size.
+        upsample_kernel_size: convolution kernel size for transposed convolution layers.
         dropout: dropout ratio. Defaults to no dropout.
-        bias: whether to have a bias term in convolution blocks. Defaults to True.
-            According to `Performance Tuning Guide <https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html>`_,
-            if a conv layer is directly followed by a batch norm layer, bias should be False.
-        adn_ordering: a string representing the ordering of activation (A), normalization (N), and dropout (D).
-            Defaults to "NDA". See also: :py:class:`monai.networks.blocks.ADN`.
-
-    Examples::
-
-        from monai.networks.nets import UNet
-
-        # 3 layer network with down/upsampling by a factor of 2 at each layer with 2-convolution residual units
-        net = UNet(
-            spatial_dims=2,
-            in_channels=1,
-            out_channels=1,
-            channels=(4, 8, 16),
-            strides=(2, 2),
-            num_res_units=2
-        )
-
-        # 5 layer network with simple convolution/normalization/dropout/activation blocks defining the layers
-        net=UNet(
-            spatial_dims=2,
-            in_channels=1,
-            out_channels=1,
-            channels=(4, 8, 16, 32, 64),
-            strides=(2, 2, 2, 2),
-        )
-
-    .. deprecated:: 0.6.0
-        ``dimensions`` is deprecated, use ``spatial_dims`` instead.
-
-    Note: The acceptable spatial size of input data depends on the parameters of the network,
-        to set appropriate spatial size, please check the tutorial for more details:
-        https://github.com/Project-MONAI/tutorials/blob/master/modules/UNet_input_size_constrains.ipynb.
-        Typically, when using a stride of 2 in down / up sampling, the output dimensions are either half of the
-        input when downsampling, or twice when upsampling. In this case with N numbers of layers in the network,
-        the inputs must have spatial dimensions that are all multiples of 2^N.
-        Usually, applying `resize`, `pad` or `crop` transforms can help adjust the spatial size of input data.
-
     """
-    def __init__(
-        self,
+    def __init__(self,
         spatial_dims: int,
         in_channels: int,
         out_channels: int,
@@ -416,38 +412,25 @@ class UNet(nn.Module):
         else:
             return x
 
-
-Unet = UNet
-
-@NETWORK_REGISTRY.register()
-def basicunet(model_cfg):
-    unet = UNet(spatial_dims=model_cfg.SPATIAL_DIMS,
-                in_channels= model_cfg.IN_CHANNELS,
-                out_channels= model_cfg.OUT_CHANNELS,
-                features= model_cfg.FEATURES,
-                norm= model_cfg.NORM,
-                dropout = model_cfg.DROPOUT,
-                is_return_feature= model_cfg.RETURN_FEATURES)
-    return unet
+attentionUnet = AttentionUNet
 
 @NETWORK_REGISTRY.register()
-def basicunetplus(model_cfg):
-    unet = UNet(spatial_dims=model_cfg.SPATIAL_DIMS,
-                in_channels= model_cfg.IN_CHANNELS,
-                out_channels= model_cfg.OUT_CHANNELS,
-                features= model_cfg.FEATURES,
-                num_res_units=2,
-                norm= model_cfg.NORM,
-                dropout = model_cfg.DROPOUT,
-                is_return_feature= model_cfg.RETURN_FEATURES)
-    return unet
+def attenionunet(model_cfg):
+    attenunet = AttentionUNet(spatial_dims=model_cfg.SPATIAL_DIMS,
+                              in_channels= model_cfg.IN_CHANNELS,
+                              out_channels= model_cfg.OUT_CHANNELS,
+                              features= model_cfg.FEATURES,
+                              norm= model_cfg.NORM,
+                              dropout = model_cfg.DROPOUT,
+                             is_return_feature= model_cfg.RETURN_FEATURES)
+    return attenunet
 
 # Always test your network implementation
 if __name__ == '__main__':
     device = torch.device('cuda')
     input = torch.ones((32, 2, 128, 128), device=device)
-    network = UNet(spatial_dims=2,
-                   in_channels=2, out_channels=3, channels=(32, 64, 96, 128), strides=(2, 2, 2),
+    network = AttentionUNet(spatial_dims=2,
+                   in_channels=2, out_channels=3, channels=(32, 64, 96, 128, 256), strides=(2, 2, 2, 2),
                    kernel_size=3, up_kernel_size=3, num_res_units=2,
                    act='relu', norm='BATCH', return_features=True).to(device)
     out, feature = network(input)

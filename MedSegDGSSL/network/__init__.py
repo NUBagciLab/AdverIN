@@ -1,4 +1,2 @@
-from .segnet.build import NETWORK_REGISTRY, build_network
-from .segnet.UNet import basicunet
-from .segnet.UNet_monai import monaiunet
+from .segnet import *
 from .ops import *
