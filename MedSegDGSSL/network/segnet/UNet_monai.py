@@ -2,7 +2,7 @@
 UNet monai version
 """
 import monai
-from monai.networks.nets import UNet, attentionunet
+from monai.networks.nets import UNet, attentionunet, unetr, swin_unetr
 
 from MedSegDGSSL.network.segnet.build import NETWORK_REGISTRY
 

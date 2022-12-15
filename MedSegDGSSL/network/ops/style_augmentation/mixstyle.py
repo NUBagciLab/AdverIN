@@ -8,6 +8,9 @@ class MixStyle(nn.Module):
 
     Reference:
       Zhou et al. Domain Generalization with MixStyle. ICLR 2021.
+    args:
+        prob: prob for aug
+        alpha: control the shape, default 0.1
     """
 
     def __init__(self, prob=0.5, alpha=0.1, eps=1e-6):

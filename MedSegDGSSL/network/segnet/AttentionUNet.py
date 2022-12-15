@@ -422,7 +422,7 @@ def attenionunet(model_cfg):
                               features= model_cfg.FEATURES,
                               norm= model_cfg.NORM,
                               dropout = model_cfg.DROPOUT,
-                             is_return_feature= model_cfg.RETURN_FEATURES)
+                              is_return_feature= model_cfg.RETURN_FEATURES)
     return attenunet
 
 # Always test your network implementation

@@ -1,29 +1,22 @@
-import torch
 from torch.nn import functional as F
 
 from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
+import torch
+
 from MedSegDGSSL.metrics import compute_dice
-from MedSegDGSSL.network.ops.input_augmentation.randconv import RandConv
 
 
 @TRAINER_REGISTRY.register()
-class RandConvDG(TrainerX):
-    """Input Augmentation via RandConv."""
-    def build_model(self):
-        n_dim = 2 if self.cfg.TRAINING_IS_2D else 3
-        self.rand_conv_ops = RandConv(input_channel=self.cfg.MODEL.IN_CHANNELS,
-                                      output_channel=self.cfg.MODEL.IN_CHANNELS,
-                                      n_dim=n_dim, distribution='kaiming_normal')
-        self.rand_conv_ops.to(self.device)
-        return super().build_model()
+class AlignFeaturesDG(TrainerX):
+    """Vanilla baseline."""
 
-    def forward_backward(self, batch):
+    def forward_backward(self, batch, previous_feature):
         input, label = self.parse_batch_train(batch)
-        input = self.rand_conv_ops(input)
-        output = self.model(input)
+        output, features = self.model(input)
         #print(input.shape, torch.sum(label))
         loss = self.loss_func(output, label)
-        self.model_backward_and_update(loss)
+        align_loss = self.loss_align(features, previous_feature)
+        self.model_backward_and_update(loss+align_loss)
         loss_summary = {
             'loss': loss.item()}
         dice_value = compute_dice(output, label)

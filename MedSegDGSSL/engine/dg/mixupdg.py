@@ -4,7 +4,7 @@ import monai.losses as losses
 
 from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
 from MedSegDGSSL.metrics import compute_dice
-from MedSegDGSSL.network.ops.mixup import MixUp
+from MedSegDGSSL.network.ops.input_augmentation.mixup import MixUp
 
 
 def to_onehot(input:torch.Tensor, num_classes:int=2):

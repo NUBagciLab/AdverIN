@@ -420,7 +420,7 @@ class UNet(nn.Module):
 Unet = UNet
 
 @NETWORK_REGISTRY.register()
-def basicunet(model_cfg):
+def naiveunet(model_cfg):
     unet = UNet(spatial_dims=model_cfg.SPATIAL_DIMS,
                 in_channels= model_cfg.IN_CHANNELS,
                 out_channels= model_cfg.OUT_CHANNELS,
@@ -431,7 +431,7 @@ def basicunet(model_cfg):
     return unet
 
 @NETWORK_REGISTRY.register()
-def basicunetplus(model_cfg):
+def basicunet(model_cfg):
     unet = UNet(spatial_dims=model_cfg.SPATIAL_DIMS,
                 in_channels= model_cfg.IN_CHANNELS,
                 out_channels= model_cfg.OUT_CHANNELS,

@@ -1,7 +1,7 @@
 import torch.nn as nn
 
 
-class _DSBN(nn.Module):
+class DSBN(nn.Module):
     """Domain Specific Batch Normalization.
     https://arxiv.org/abs/1906.03950
 
@@ -36,18 +36,18 @@ class _DSBN(nn.Module):
         return self.bn[self.domain_idx](x)
 
 
-class DSBN1d(_DSBN):
+class DSBN1d(DSBN):
 
     def __init__(self, num_features, n_domain):
         super().__init__(num_features, n_domain, '1d')
 
 
-class DSBN2d(_DSBN):
+class DSBN2d(DSBN):
 
     def __init__(self, num_features, n_domain):
         super().__init__(num_features, n_domain, '2d')
 
-class DSBN2d(_DSBN):
+class DSBN3d(DSBN):
 
     def __init__(self, num_features, n_domain):
         super().__init__(num_features, n_domain, '3d')
