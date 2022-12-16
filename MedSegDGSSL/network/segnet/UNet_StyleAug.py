@@ -3,154 +3,25 @@ Modify based on the MONAI implementation
 Enable returning the intermidiate features
 """
 
-# Copyright (c) MONAI Consortium
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 import warnings
 from typing import Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
 
+import monai
+from monai.networks.blocks.convolutions import Convolution, ResidualUnit
+from monai.networks.layers.factories import Act, Norm
+from monai.networks.layers.simplelayers import SkipConnection
+from monai.utils import SkipMode
+
 from MedSegDGSSL.network.segnet.build import NETWORK_REGISTRY
-from MedSegDGSSL.network.segnet.UNet import UpConv, Decoder
+from MedSegDGSSL.network.segnet.UNet import ConvolutionWrapper, ResidualUnitWrapper, Sequential2, SkipConnectionWrapper
 from MedSegDGSSL.network.ops.style_augmentation import DSU, MixStyle, pAdaIN
 from MedSegDGSSL.network.ops.style_augmentation import BatchInstanceNorm, BatchInstanceNorm2d, BatchInstanceNorm3d
 
-from monai.networks.blocks.convolutions import Convolution, ResidualUnit
-from monai.networks.layers.factories import Act, Norm
 
 __all__ = ["StyleAugUNet", "StyleAugUnet"]
-
-
-class StyleAugEncoder(nn.Module):
-    """ Build the encoder for the network with style augmentation
-    """
-    def __init__(self,
-                 spatial_dims: int,
-                 in_channels: int,
-                 channels: Sequence[int],
-                 strides: Sequence[int],
-                 style_aug: nn.Module,
-                 styleaug_kwargs:dict = {},
-                 kernel_size: Union[Sequence[int], int] = 3,
-                 num_res_units: int = 0,
-                 act: Union[Tuple, str] = Act.PRELU,
-                 norm: Union[Tuple, str] = Norm.INSTANCE,
-                 dropout: float = 0.0,
-                 bias: bool = True,
-                 adn_ordering: str = "NDA",
-                 ):
-        super().__init__()
-        self.dimensions = spatial_dims
-        self.in_channels = in_channels
-        self.channels = channels
-        self.strides = strides
-        self.kernel_size = kernel_size
-        self.num_res_units = num_res_units
-        self.act = act
-        self.norm = norm
-        self.dropout = dropout
-        self.bias = bias
-        self.adn_ordering = adn_ordering
-        self.style_aug = style_aug
-        self.styleaug_kwargs = styleaug_kwargs
-        self.is_batch_instance_norm = (self.style_aug is BatchInstanceNorm) or \
-                                        issubclass(self.style_aug, BatchInstanceNorm)
-
-        self.n_layers = len(channels) -1 
-        self.encoder_list = nn.ModuleList()
-        self.styleaug_list = nn.ModuleList()
-        self.input_block = self._get_down_layer(self.in_channels, self.channels[0], 1, False)
-
-        for i in range(self.n_layers):
-            if not self.is_batch_instance_norm:
-                self.styleaug_list.append(self.style_aug(**self.styleaug_kwargs))
-            else:
-                self.styleaug_list.append(self.style_aug(num_features=self.channels[i], **self.styleaug_kwargs))
-
-            self.encoder_list.append(self._get_down_layer(in_channels=self.channels[i],
-                                                          out_channels=self.channels[i+1],
-                                                          strides=self.strides[i], is_top=False))
-
-        self.bottom = self._get_bottom_layer(self.channels[-1], self.channels[-1])
-        if not self.is_batch_instance_norm:
-            self.styleaug_list.append(self.style_aug(**self.styleaug_kwargs))
-        else:
-            self.styleaug_list.append(self.style_aug(num_features=self.channels[-1], **self.styleaug_kwargs))
-
-    def _get_down_layer(self, in_channels: int, out_channels: int, strides: int, is_top: bool) -> nn.Module:
-        """
-        Returns the encoding (down) part of a layer of the network. This typically will downsample data at some point
-        in its structure. Its output is used as input to the next layer down and is concatenated with output from the
-        next layer to form the input for the decode (up) part of the layer.
-
-        Args:
-            in_channels: number of input channels.
-            out_channels: number of output channels.
-            strides: convolution stride.
-            is_top: True if this is the top block.
-        """
-        mod: nn.Module
-        if self.num_res_units > 0:
-
-            mod = ResidualUnit(
-                self.dimensions,
-                in_channels,
-                out_channels,
-                strides=strides,
-                kernel_size=self.kernel_size,
-                subunits=self.num_res_units,
-                act=self.act,
-                norm=self.norm,
-                dropout=self.dropout,
-                bias=self.bias,
-                adn_ordering=self.adn_ordering,
-            )
-            return mod
-        mod = Convolution(
-            self.dimensions,
-            in_channels,
-            out_channels,
-            strides=strides,
-            kernel_size=self.kernel_size,
-            act=self.act,
-            norm=self.norm,
-            dropout=self.dropout,
-            bias=self.bias,
-            adn_ordering=self.adn_ordering,
-        )
-        return mod
-
-    def _get_bottom_layer(self, in_channels: int, out_channels: int) -> nn.Module:
-        """
-        Returns the bottom or bottleneck layer at the bottom of the network linking encode to decode halves.
-
-        Args:
-            in_channels: number of input channels.
-            out_channels: number of output channels.
-        """
-        return self._get_down_layer(in_channels, out_channels, 1, False)
-    
-    def forward(self, input):
-        features = []
-        input = self.input_block(input)
-        for i in range(self.n_layers):
-            input = self.styleaug_list[i](input)
-            features.append(input)
-            input = self.encoder_list[i](input)
-
-        input = self.bottom(input)
-        input = self.styleaug_list[-1](input)
-        features.append(input)
-        return features
 
 
 class StyleAugUNet(nn.Module):
@@ -210,33 +81,272 @@ class StyleAugUNet(nn.Module):
         self.bias = bias
         self.adn_ordering = adn_ordering
         self.return_features = return_features
+
         self.style_aug = style_aug
         self.styleaug_kwargs = styleaug_kwargs
+        self.is_batch_instance_norm = (self.style_aug is BatchInstanceNorm) or \
+                                        issubclass(self.style_aug, BatchInstanceNorm)
 
-        self.encoder = StyleAugEncoder(spatial_dims=self.dimensions,
-                                       in_channels=self.in_channels, channels=self.channels, strides=self.strides,
-                                       style_aug=self.style_aug, styleaug_kwargs=self.styleaug_kwargs,
-                                       kernel_size=self.kernel_size, num_res_units=self.num_res_units,
-                                       act=self.act, norm=self.norm, dropout=self.dropout, bias=self.bias,
-                                       adn_ordering=self.adn_ordering)
-        self.decoder = Decoder(spatial_dims=self.dimensions,
-                               out_channels=self.out_channels, channels=self.channels, strides=self.strides,
-                               up_kernel_size=self.up_kernel_size, num_res_units=self.num_res_units,
-                               act=self.act, norm=self.norm, dropout=self.dropout, bias=self.bias,
-                               adn_ordering=self.adn_ordering)
-    
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        features = self.encoder(x)
-        x = self.decoder(features)
+        def _create_block(
+            inc: int, outc: int, channels: Sequence[int], strides: Sequence[int], is_top: bool
+        ) -> nn.Module:
+            """
+            Builds the UNet structure from the bottom up by recursing down to the bottom block, then creating sequential
+            blocks containing the downsample path, a skip connection around the previous block, and the upsample path.
 
-        if self.return_features and self.training:
-            return x, features[-1]
+            Args:
+                inc: number of input channels.
+                outc: number of output channels.
+                channels: sequence of channels. Top block first.
+                strides: convolution stride.
+                is_top: True if this is the top block.
+            """
+            c = channels[0]
+            s = strides[0]
+
+            subblock: nn.Module
+
+            if len(channels) > 2:
+                subblock = _create_block(c, c, channels[1:], strides[1:], False)  # continue recursion down
+                upc = c * 2
+            else:
+                # the next layer is the bottom so stop recursion, create the bottom layer as the sublock for this layer
+                subblock = self._get_bottom_layer(c, channels[1])
+                upc = c + channels[1]
+
+            down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
+            up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
+
+            return self._get_connection_block(down, up, subblock)
+
+        self.model = _create_block(in_channels, out_channels, self.channels, self.strides, True)
+        print(self.model)
+
+    def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
+        """
+        Returns the block object defining a layer of the UNet structure including the implementation of the skip
+        between encoding (down) and and decoding (up) sides of the network.
+
+        Args:
+            down_path: encoding half of the layer
+            up_path: decoding half of the layer
+            subblock: block defining the next layer in the network.
+        Returns: block for this layer: `nn.Sequential(down_path, SkipConnection(subblock), up_path)`
+        """
+        if self.return_features:
+            return Sequential2(down_path, SkipConnectionWrapper(subblock), up_path)
+        return Sequential2(down_path, SkipConnection(subblock), up_path)
+
+    def _get_down_layer(self, in_channels: int, out_channels: int, strides: int, is_top: bool) -> nn.Module:
+        """
+        Returns the encoding (down) part of a layer of the network. This typically will downsample data at some point
+        in its structure. Its output is used as input to the next layer down and is concatenated with output from the
+        next layer to form the input for the decode (up) part of the layer.
+
+        Args:
+            in_channels: number of input channels.
+            out_channels: number of output channels.
+            strides: convolution stride.
+            is_top: True if this is the top block.
+        """
+        mod: Union[nn.Module, nn.Sequential]
+        if not self.is_batch_instance_norm:
+            styleaug = self.style_aug(**self.styleaug_kwargs)
         else:
-            return x
+            styleaug = self.style_aug(num_features=out_channels, **self.styleaug_kwargs)
+
+        if self.num_res_units > 0:
+
+            mod = ResidualUnit(
+                self.dimensions,
+                in_channels,
+                out_channels,
+                strides=strides,
+                kernel_size=self.kernel_size,
+                subunits=self.num_res_units,
+                act=self.act,
+                norm=self.norm,
+                dropout=self.dropout,
+                bias=self.bias,
+                adn_ordering=self.adn_ordering,
+            )
+            return nn.Sequential(mod, styleaug)
+        mod = Convolution(
+            self.dimensions,
+            in_channels,
+            out_channels,
+            strides=strides,
+            kernel_size=self.kernel_size,
+            act=self.act,
+            norm=self.norm,
+            dropout=self.dropout,
+            bias=self.bias,
+            adn_ordering=self.adn_ordering,
+        )
+        
+        return nn.Sequential(mod, styleaug)
+
+    def _get_bottom_layer(self, in_channels: int, out_channels: int) -> nn.Module:
+        """
+        Returns the bottom or bottleneck layer at the bottom of the network linking encode to decode halves.
+
+        Args:
+            in_channels: number of input channels.
+            out_channels: number of output channels.
+        """
+        mod: nn.Module
+        if self.return_features:
+            if self.num_res_units > 0:
+
+                mod = ResidualUnitWrapper(
+                    self.dimensions,
+                    in_channels,
+                    out_channels,
+                    strides=1,
+                    kernel_size=self.kernel_size,
+                    subunits=self.num_res_units,
+                    act=self.act,
+                    norm=self.norm,
+                    dropout=self.dropout,
+                    bias=self.bias,
+                    adn_ordering=self.adn_ordering,
+                )
+                return mod
+            mod = ConvolutionWrapper(
+                self.dimensions,
+                in_channels,
+                out_channels,
+                strides=1,
+                kernel_size=self.kernel_size,
+                act=self.act,
+                norm=self.norm,
+                dropout=self.dropout,
+                bias=self.bias,
+                adn_ordering=self.adn_ordering,
+            )
+        else:
+            if self.num_res_units > 0:
+
+                mod = ResidualUnit(
+                    self.dimensions,
+                    in_channels,
+                    out_channels,
+                    strides=1,
+                    kernel_size=self.kernel_size,
+                    subunits=self.num_res_units,
+                    act=self.act,
+                    norm=self.norm,
+                    dropout=self.dropout,
+                    bias=self.bias,
+                    adn_ordering=self.adn_ordering,
+                )
+                return mod
+            mod = Convolution(
+                self.dimensions,
+                in_channels,
+                out_channels,
+                strides=1,
+                kernel_size=self.kernel_size,
+                act=self.act,
+                norm=self.norm,
+                dropout=self.dropout,
+                bias=self.bias,
+                adn_ordering=self.adn_ordering,
+            )
+        return mod
+
+    def _get_up_layer(self, in_channels: int, out_channels: int, strides: int, is_top: bool) -> nn.Module:
+        """
+        Returns the decoding (up) part of a layer of the network. This typically will upsample data at some point
+        in its structure. Its output is used as input to the next layer up.
+
+        Args:
+            in_channels: number of input channels.
+            out_channels: number of output channels.
+            strides: convolution stride.
+            is_top: True if this is the top block.
+        """
+        conv: Union[Convolution, nn.Sequential, Sequential2]
+
+        if self.return_features:
+            conv = ConvolutionWrapper(
+                self.dimensions,
+                in_channels,
+                out_channels,
+                strides=strides,
+                kernel_size=self.up_kernel_size,
+                act=self.act,
+                norm=self.norm,
+                dropout=self.dropout,
+                bias=self.bias,
+                conv_only=is_top and self.num_res_units == 0,
+                is_transposed=True,
+                adn_ordering=self.adn_ordering,
+            )
+
+            if self.num_res_units > 0:
+                ru = ResidualUnitWrapper(
+                    self.dimensions,
+                    out_channels,
+                    out_channels,
+                    strides=1,
+                    kernel_size=self.kernel_size,
+                    subunits=1,
+                    act=self.act,
+                    norm=self.norm,
+                    dropout=self.dropout,
+                    bias=self.bias,
+                    last_conv_only=is_top,
+                    adn_ordering=self.adn_ordering,
+                )
+                conv = Sequential2(conv, ru)
+        else:
+            conv = Convolution(
+                self.dimensions,
+                in_channels,
+                out_channels,
+                strides=strides,
+                kernel_size=self.up_kernel_size,
+                act=self.act,
+                norm=self.norm,
+                dropout=self.dropout,
+                bias=self.bias,
+                conv_only=is_top and self.num_res_units == 0,
+                is_transposed=True,
+                adn_ordering=self.adn_ordering,
+            )
+
+            if self.num_res_units > 0:
+                ru = ResidualUnit(
+                    self.dimensions,
+                    out_channels,
+                    out_channels,
+                    strides=1,
+                    kernel_size=self.kernel_size,
+                    subunits=1,
+                    act=self.act,
+                    norm=self.norm,
+                    dropout=self.dropout,
+                    bias=self.bias,
+                    last_conv_only=is_top,
+                    adn_ordering=self.adn_ordering,
+                )
+                conv = Sequential2(conv, ru)
+
+        return conv
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.return_features:
+            x, feature = self.model(x)
+            if self.training:
+                return x, feature
+            else:
+                return x
+        x = self.model(x)
+        return x
 
 
 StyleAugUnet = StyleAugUNet
-
 
 @NETWORK_REGISTRY.register()
 def basicunet_dsu(model_cfg):
@@ -310,6 +420,7 @@ def basicunet_bin(model_cfg):
                         dropout = model_cfg.DROPOUT,
                         return_features= model_cfg.RETURN_FEATURES)
     return unet
+
 
 # Always test your network implementation
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 Modified from https://github.com/facebookresearch/fvcore
 """
 __all__ = ['Registry']
-
+import warnings
 
 class Registry:
     """A registry providing name -> object mapping, to support
@@ -35,7 +35,7 @@ class Registry:
 
     def _do_register(self, name, obj):
         if name in self._obj_map:
-            raise KeyError(
+           warnings.warn(
                 'An object named "{}" was already '
                 'registered in "{}" registry'.format(name, self._name)
             )
