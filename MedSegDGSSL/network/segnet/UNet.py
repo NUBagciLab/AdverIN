@@ -424,10 +424,11 @@ def naiveunet(model_cfg):
     unet = UNet(spatial_dims=model_cfg.SPATIAL_DIMS,
                 in_channels= model_cfg.IN_CHANNELS,
                 out_channels= model_cfg.OUT_CHANNELS,
-                features= model_cfg.FEATURES,
+                channels=model_cfg.FEATURES,
+                strides=model_cfg.STRIDES,
                 norm= model_cfg.NORM,
                 dropout = model_cfg.DROPOUT,
-                is_return_feature= model_cfg.RETURN_FEATURES)
+                return_features= model_cfg.RETURN_FEATURES)
     return unet
 
 @NETWORK_REGISTRY.register()
@@ -435,11 +436,12 @@ def basicunet(model_cfg):
     unet = UNet(spatial_dims=model_cfg.SPATIAL_DIMS,
                 in_channels= model_cfg.IN_CHANNELS,
                 out_channels= model_cfg.OUT_CHANNELS,
-                features= model_cfg.FEATURES,
+                channels=model_cfg.FEATURES,
+                strides=model_cfg.STRIDES,
                 num_res_units=2,
                 norm= model_cfg.NORM,
                 dropout = model_cfg.DROPOUT,
-                is_return_feature= model_cfg.RETURN_FEATURES)
+                return_features= model_cfg.RETURN_FEATURES)
     return unet
 
 # Always test your network implementation

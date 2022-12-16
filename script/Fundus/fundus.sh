@@ -17,7 +17,7 @@ cuda_device=0
 --target-domains ${D4} \
 --seed ${SEED} \
 --config-file configs/trainers/${DATASET}.yaml \
---output-dir output/dg/${DATASET}/${method}/${D4} & )
+--output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/${D4} & )
 
 (CUDA_VISIBLE_DEVICES=1 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
@@ -26,7 +26,7 @@ cuda_device=0
 --target-domains ${D3} \
 --seed ${SEED} \
 --config-file configs/trainers/${DATASET}.yaml \
---output-dir output/dg/${DATASET}/${method}/${D3} & )
+--output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/${D3} & )
 
 (CUDA_VISIBLE_DEVICES=3 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
@@ -35,7 +35,7 @@ cuda_device=0
 --target-domains ${D2} \
 --seed ${SEED} \
 --config-file configs/trainers/${DATASET}.yaml \
---output-dir output/dg/${DATASET}/${method}/${D2} & )
+--output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/${D2} & )
 
 (CUDA_VISIBLE_DEVICES=4 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
@@ -44,7 +44,7 @@ cuda_device=0
 --target-domains ${D1} \
 --seed ${SEED} \
 --config-file configs/trainers/${DATASET}.yaml \
---output-dir output/dg/${DATASET}/${method}/${D1} )
+--output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/${D1} )
 
 
 wait

@@ -1,7 +1,7 @@
+import torch
 from torch.nn import functional as F
 
 from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
-import torch
 
 from MedSegDGSSL.metrics import compute_dice
 

@@ -2,7 +2,7 @@ import argparse
 import torch
 
 from MedSegDGSSL.utils import setup_logger, set_random_seed, collect_env_info
-from MedSegDGSSL.config import get_cfg_default
+from MedSegDGSSL.config import get_config
 from MedSegDGSSL.engine import build_trainer
 
 
@@ -48,7 +48,7 @@ def reset_cfg(cfg, args):
     cfg.DATALOADER.TRAIN_X.BATCH_SIZE = args.batch_size
 
 def setup_cfg(args):
-    cfg = get_cfg_default()
+    cfg = get_config(args.trainer)
     reset_cfg(cfg, args)
     if args.config_file:
         cfg.merge_from_file(args.config_file)

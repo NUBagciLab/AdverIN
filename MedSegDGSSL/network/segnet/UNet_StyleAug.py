@@ -85,7 +85,6 @@ class StyleAugEncoder(nn.Module):
             self.styleaug_list.append(self.style_aug(**self.styleaug_kwargs))
         else:
             self.styleaug_list.append(self.style_aug(num_features=self.channels[-1], **self.styleaug_kwargs))
-        print(self.styleaug_list)
 
     def _get_down_layer(self, in_channels: int, out_channels: int, strides: int, is_top: bool) -> nn.Module:
         """
@@ -246,13 +245,14 @@ def basicunet_dsu(model_cfg):
     unet = StyleAugUNet(spatial_dims=model_cfg.SPATIAL_DIMS,
                         in_channels= model_cfg.IN_CHANNELS,
                         out_channels= model_cfg.OUT_CHANNELS,
-                        features= model_cfg.FEATURES,
+                        channels=model_cfg.FEATURES,
+                        strides=model_cfg.STRIDES,
                         style_aug=style_aug,
                         styleaug_kwargs=styleaug_kwargs,
                         num_res_units=2,
                         norm= Norm.BATCH,
                         dropout = model_cfg.DROPOUT,
-                        is_return_feature= model_cfg.RETURN_FEATURES)
+                        return_features= model_cfg.RETURN_FEATURES)
     return unet
 
 @NETWORK_REGISTRY.register()
@@ -264,13 +264,14 @@ def basicunet_mixstyle(model_cfg):
     unet = StyleAugUNet(spatial_dims=model_cfg.SPATIAL_DIMS,
                         in_channels= model_cfg.IN_CHANNELS,
                         out_channels= model_cfg.OUT_CHANNELS,
-                        features= model_cfg.FEATURES,
+                        channels=model_cfg.FEATURES,
+                        strides=model_cfg.STRIDES,
                         style_aug=style_aug,
                         styleaug_kwargs=styleaug_kwargs,
                         num_res_units=2,
                         norm= Norm.BATCH,
                         dropout = model_cfg.DROPOUT,
-                        is_return_feature= model_cfg.RETURN_FEATURES)
+                        return_features= model_cfg.RETURN_FEATURES)
     return unet
 
 @NETWORK_REGISTRY.register()
@@ -280,13 +281,14 @@ def basicunet_padain(model_cfg):
     unet = StyleAugUNet(spatial_dims=model_cfg.SPATIAL_DIMS,
                         in_channels= model_cfg.IN_CHANNELS,
                         out_channels= model_cfg.OUT_CHANNELS,
-                        features= model_cfg.FEATURES,
+                        channels=model_cfg.FEATURES,
+                        strides=model_cfg.STRIDES,
                         style_aug=style_aug,
                         styleaug_kwargs=styleaug_kwargs,
                         num_res_units=2,
                         norm= Norm.BATCH,
                         dropout = model_cfg.DROPOUT,
-                        is_return_feature= model_cfg.RETURN_FEATURES)
+                        return_features= model_cfg.RETURN_FEATURES)
     return unet
 
 @NETWORK_REGISTRY.register()
@@ -299,13 +301,14 @@ def basicunet_bin(model_cfg):
     unet = StyleAugUNet(spatial_dims=model_cfg.SPATIAL_DIMS,
                         in_channels= model_cfg.IN_CHANNELS,
                         out_channels= model_cfg.OUT_CHANNELS,
-                        features= model_cfg.FEATURES,
+                        channels=model_cfg.FEATURES,
+                        strides=model_cfg.STRIDES,
                         style_aug=style_aug,
                         styleaug_kwargs=styleaug_kwargs,
                         num_res_units=2,
                         norm= Norm.BATCH,
                         dropout = model_cfg.DROPOUT,
-                        is_return_feature= model_cfg.RETURN_FEATURES)
+                        return_features= model_cfg.RETURN_FEATURES)
     return unet
 
 # Always test your network implementation

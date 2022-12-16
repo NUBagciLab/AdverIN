@@ -1,5 +1,5 @@
-from .defaults import _C as cfg_default
-
-
-def get_cfg_default():
-    return cfg_default.clone()
+from .defaults import *
+from .mixup import *
+from .randconv import *
+from .style_augmentation import *
+from .build import get_config

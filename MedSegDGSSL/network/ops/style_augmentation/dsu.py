@@ -23,6 +23,9 @@ class DistributionUncertainty(nn.Module):
         self.eps = eps
         self.p = prob
         self.factor = factor
+    
+    def __repr__(self):
+        return f'DSU(p={self.p}, eps={self.eps})'
 
     def _reparameterize(self, mu, std):
         epsilon = torch.randn_like(std) * self.factor

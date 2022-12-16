@@ -1,2 +1,2 @@
-from .segnet import *
 from .ops import *
+from .segnet import *

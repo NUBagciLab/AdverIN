@@ -21,7 +21,9 @@ def to_onehot(input:torch.Tensor, num_classes:int=2):
 class MixUpDG(TrainerX):
     """Input Augmentation via MixUp."""
     def build_model(self):
-        self.mixup_ops = MixUp(preserve_order=True)
+        self.mixup_ops = MixUp(alpha=self.cfg.MODEL.MIX_UP.ALPHA,
+                               prob=self.cfg.MODEL.MIX_UP.PROB,
+                               preserve_order=self.cfg.MODEL.MIX_UP.ORDER)
         self.mixup_ops.to(self.device)
         return super().build_model()
     

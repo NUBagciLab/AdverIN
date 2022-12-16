@@ -1,0 +1,28 @@
+DATA_IS_3D: True
+TRAINING_IS_2D: True
+
+DATASET:
+  NAME: 'ProstateMRI'
+
+MODEL:
+  NAME: 'basicunet_mixstyle'
+  SPATIAL_DIMS: 2
+  IN_CHANNELS: 3
+  OUT_CHANNELS: 2
+  FEATURES: [32, 32, 64, 64, 128, 128, 256]
+  STRIDES: [2, 2, 2, 2, 2, 2]
+  DROPOUT: 0.3
+  NORM: 'BATCH'
+
+DATALOADER:
+  TRAIN_X:
+    BATCH_SIZE: 32
+  TEST:
+    BATCH_SIZE: 32
+  NUM_WORKERS: 8
+
+OPTIM:
+  NAME: 'sgd'
+  LR: 0.01
+  MAX_EPOCH: 1000
+  LR_SCHEDULER: 'cosine'

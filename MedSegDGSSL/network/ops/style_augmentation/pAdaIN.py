@@ -25,10 +25,8 @@ class PermuteAdaptiveInstanceNorm2d(nn.Module):
         perm_indices = torch.randperm(x.size()[0])
         return adaptive_instance_normalization(x, x[perm_indices], self.eps)
 
-    def extra_repr(self) -> str:
-        return 'adain p={}'.format(
-            self.p
-        )
+    def __repr__(self):
+        return f'pAdaIN(p={self.p}, eps={self.eps})'
 
 
 def calc_mean_std(feat, eps=1e-5):
