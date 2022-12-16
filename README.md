@@ -6,13 +6,15 @@
 **Why this framework?** Well, unlike the natural image tasks, the medical image segmentation performance for domain generalization might be very different when using different data preprocessing, data augmentation or different training methods. Many previous works lack fair comparasion and results can hardly be repeated by community. We want to achieve one fair evaluation for varies domain generalization methods.
 
 ### Supported Datasets
-Multidomain medical image segmentation tasks are limited. We collect the high quality datasets under multi-center setting in previous research as much as possible. We reorganize the dataset into the standard format for preprocessing and training. The supported dataset are listed as follow:
+Multidomain medical image segmentation tasks are limited. We collect the high quality datasets under multi-center setting in previous research as much as possible. We reorganize the dataset into the standard format for preprocessing and training. Currently supported dataset are listed as follow:
 
 + Multi-domain Prostate MRI Segmentation Dataset
 + Multi-domain Fundus Optic Cup and Optic Disc Segmentation Dataset
 + Multi-domain Fundus Vessel Segmentation Dataset
 + Multi-domain Covid-19 Segmentation Dataset
 + Multi-domain Cardiac Segmentation Dataset
+
+**We highly encourage if anyone wants to combine their published dataset into the framework!**
 
 ### Data Preprocessing
 
