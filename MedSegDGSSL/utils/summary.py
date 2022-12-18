@@ -127,6 +127,8 @@ def generate_summary(folder, method_list=None, metrics=out_metrics):
                 else generate_summary_interdomain(folder, method, metrics=metrics) for method in method_list]
     # print(df_list[0])
     final_df = pd.concat(df_list).drop_duplicates()
+    # Get latex if needed
+    # final_df.style.to_latex()
     return final_df
 
 def get_parse():
