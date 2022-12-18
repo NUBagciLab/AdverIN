@@ -248,9 +248,9 @@ class FinalSegmentation(EvaluatorBase):
                     self._mean_evaludation_dict[label][metric]["mean"] = temp_mean
                     self._mean_evaludation_dict[label][metric]["std"] = temp_std
                     if self.exp_distance in metric:
-                        results[label][metric] = f"{np.round(temp_mean, 2)} " + u"\u00B1" + f" {np.round(temp_std, 2)}"
+                        results[label][metric] = f"{np.round(temp_mean, 2)} " + "\u00B1" + f" {np.round(temp_std, 2)}"
                     else:
-                        results[label][metric] = f"{np.round(temp_mean, 4)} " + u"\u00B1" + f" {np.round(temp_std, 4)}"
+                        results[label][metric] = f"{np.round(temp_mean, 4)} " + "\u00B1" + f" {np.round(temp_std, 4)}"
 
             pf = pd.DataFrame.from_dict(results, orient='index')
             print('=> result\n', pf)
