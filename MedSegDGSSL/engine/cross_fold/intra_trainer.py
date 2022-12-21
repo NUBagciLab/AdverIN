@@ -55,4 +55,5 @@ class IntraTrainer(TrainerX):
 
     def final_evaluation(self):
         """A generic final evaluation pipeline."""
-        super().final_evaluation(extra_name=f'_fold_{self.cfg.DATASET.FOLD}')
+        # extra_name=f'_fold_{self.cfg.DATASET.FOLD}'
+        super().final_evaluation()

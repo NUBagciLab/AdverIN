@@ -15,7 +15,7 @@ from monai.networks.layers.factories import Act, Norm
 from monai.networks.layers.simplelayers import SkipConnection
 from monai.utils import SkipMode
 
-from MedSegDGSSL.network.segnet.build import NETWORK_REGISTRY
+from MedSegDGSSL.network.build import NETWORK_REGISTRY
 from MedSegDGSSL.network.segnet.UNet import ConvolutionWrapper, ResidualUnitWrapper, Sequential2, SkipConnectionWrapper
 from MedSegDGSSL.network.ops.style_augmentation import DSU, MixStyle, pAdaIN
 from MedSegDGSSL.network.ops.style_augmentation import BatchInstanceNorm, BatchInstanceNorm2d, BatchInstanceNorm3d
@@ -117,8 +117,15 @@ class StyleAugUNet(nn.Module):
 
             return self._get_connection_block(down, up, subblock)
 
-        self.model = _create_block(in_channels, out_channels, self.channels, self.strides, True)
-        print(self.model)
+        self.input_block = Convolution(self.dimensions, in_channels, self.channels[0],
+                                       strides=1, kernel_size=self.kernel_size, act=self.act,
+                                       norm=self.norm, dropout=self.dropout, bias=self.bias, adn_ordering=self.adn_ordering)
+        self.output_block = Convolution(self.dimensions, self.channels[0], out_channels,
+                                        strides=1, kernel_size=self.kernel_size, act=self.act, conv_only=True,
+                                        norm=self.norm, dropout=self.dropout, bias=self.bias, adn_ordering=self.adn_ordering)
+        
+        self.inter_model = _create_block(self.channels[0], self.channels[0], self.channels, self.strides, False)
+        self.model = nn.Sequential(self.input_block, self.inter_model, self.output_block)
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
         """
@@ -371,8 +378,15 @@ class StyleAugUNetWithFeature(nn.Module):
 
             return self._get_connection_block(down, up, subblock)
 
-        self.model = _create_block(in_channels, out_channels, self.channels, self.strides, True)
-        print(self.model)
+        self.input_block = Convolution(self.dimensions, in_channels, self.channels[0],
+                                       strides=1, kernel_size=self.kernel_size, act=self.act,
+                                       norm=self.norm, dropout=self.dropout, bias=self.bias, adn_ordering=self.adn_ordering)
+        self.output_block = ConvolutionWrapper(self.dimensions, self.channels[0], out_channels,
+                                               strides=1, kernel_size=self.kernel_size, act=self.act, conv_only=True,
+                                               norm=self.norm, dropout=self.dropout, bias=self.bias, adn_ordering=self.adn_ordering)
+        
+        self.inter_model = _create_block(self.channels[0], self.channels[0], self.channels, self.strides, False)
+        self.model = Sequential2(self.input_block, self.inter_model, self.output_block)
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
         """

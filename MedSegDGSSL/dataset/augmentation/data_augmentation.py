@@ -16,7 +16,7 @@ from batchgenerators.transforms.resample_transforms import SimulateLowResolution
 from batchgenerators.transforms.spatial_transforms import SpatialTransform, MirrorTransform,SpatialTransform_2
 from batchgenerators.transforms.utility_transforms import RemoveLabelTransform, RenameTransform, NumpyToTensor
 from MedSegDGSSL.dataset.augmentation.augmentation_params import params_dict
-from MedSegDGSSL.dataset.augmentation.custom_transforms import RandCropByPosNegRatio, RandAdjustResolution
+from MedSegDGSSL.dataset.augmentation.custom_transforms import RandCropByPosNegRatio, RandAdjustResolution, MinMaxNormalization
 
 
 def get_default_train_augmentation(patch_size, params_key='3D'):
@@ -51,6 +51,8 @@ def get_default_train_augmentation(patch_size, params_key='3D'):
     if params.get("do_res"):
         tr_transforms.append(RandAdjustResolution(params.get("p_resolution"), params.get("gaussian_range"),
                              params.get("sharp_range")))
+
+    tr_transforms.append(MinMaxNormalization(norm_range=params.get('norm_range')))
     tr_transforms = Compose(tr_transforms)
     return tr_transforms
 
@@ -120,6 +122,7 @@ def get_dense_augmentation(patch_size, params_key='3D'):
         tr_transforms.append(RandAdjustResolution(params.get("p_resolution"), params.get("gaussian_range"),
                              params.get("sharp_range")))
 
+    tr_transforms.append(MinMaxNormalization(norm_range=params.get('norm_range')))
     tr_transforms.append(RemoveLabelTransform(-1, 0))
     tr_transforms = Compose(tr_transforms)
    

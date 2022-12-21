@@ -170,6 +170,21 @@ class RandAdjustResolution(AbstractTransform):
         
         return data_dict
 
+class MinMaxNormalization(AbstractTransform):
+    """ Random Crop volume or spatial according to the positive / negative ratio
+    """
+    def __init__(self, norm_range=(-1, 1), data_key="data"):
+        self.data_key = data_key
+        self.norm_range = norm_range
+
+    def __call__(self, **data_dict):
+        data = data_dict.get(self.data_key)
+    
+        data_dict[self.data_key] = (data - np.max(data)) / (np.max(data) - np.min(data))*\
+                                    (self.norm_range[1]-self.norm_range[0]) + self.norm_range[0]
+
+        return data_dict
+
 if __name__ == "__main__":
     seg = np.zeros((1, 1, 32, 256, 256))
     seg[:,:, 12:18, :128, 128:] = 1

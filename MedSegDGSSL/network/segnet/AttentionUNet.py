@@ -18,7 +18,7 @@ from typing import Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
-from MedSegDGSSL.network.segnet.build import NETWORK_REGISTRY
+from MedSegDGSSL.network.build import NETWORK_REGISTRY
 
 from monai.networks.blocks.convolutions import Convolution, ResidualUnit
 from monai.networks.layers.factories import Act, Norm

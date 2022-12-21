@@ -38,9 +38,8 @@ class TrainDatasetWarpper(Dataset):
 
         for key in self.keys:
             out_dict[key] = np.expand_dims(temp_data[key], axis=0)
-
-        # out_dict['data'] = (out_dict['data'] - np.mean(out_dict['data'])) / np.std(out_dict['data'])
         out_dict = self.transform(**out_dict)
+        out_dict['data'] = 2*(out_dict['data'] - np.min(out_dict['data'])) / (np.max(out_dict['data'])-np.min(out_dict['data']))-1
 
         for key in self.keys:
             out_dict[key] = torch.from_numpy(out_dict[key][0]).to(self.dtype_dict[key])

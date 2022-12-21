@@ -19,7 +19,7 @@ from typing import Optional, Sequence, Tuple, Union
 import torch
 import torch.nn as nn
 
-from MedSegDGSSL.network.segnet.build import NETWORK_REGISTRY
+from MedSegDGSSL.network.build import NETWORK_REGISTRY
 from MedSegDGSSL.network.segnet.UNet import UpConv, Decoder
 from MedSegDGSSL.network.ops.style_augmentation import DSBN
 

@@ -123,7 +123,7 @@ def generate_summary(folder, method_list=None, metrics=out_metrics):
         method_list = [name for name in os.listdir(folder) \
                     if not os.path.isfile(os.path.join(folder, name))]
     
-    df_list = [generate_summary_crossdomain(folder, method, metrics=metrics) if not method=="intra_domain" \
+    df_list = [generate_summary_crossdomain(folder, method, metrics=metrics) if not method=="intradomain" \
                 else generate_summary_interdomain(folder, method, metrics=metrics) for method in method_list]
     # print(df_list[0])
     final_df = pd.concat(df_list).drop_duplicates()

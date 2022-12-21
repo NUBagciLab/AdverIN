@@ -9,9 +9,8 @@ D5=UCL
 D6=RUNMC
 
 SEED=0
-trainers_list=(Vanilla Vanilla RandConvDG MixUpDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG)
-methods_list=(bnorm inorm randconv mixup mixstyle dsu padain binorm)
-method=bn
+trainers_list=(Vanilla Vanilla RandConvDG MixUpDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG AdverTraining AdverTraining AdverTraining)
+methods_list=(bnorm inorm randconv mixup mixstyle dsu padain binorm adverbias adverhist advernoise)
 cuda_device=0
 
 int=0
