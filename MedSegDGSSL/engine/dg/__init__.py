@@ -6,3 +6,4 @@ from .randconvdg import RandConvDG
 from .mixupdg import MixUpDG
 from .styleaug import StyleAugDG
 from .advertraining import AdverTraining
+from .saml import SAML
