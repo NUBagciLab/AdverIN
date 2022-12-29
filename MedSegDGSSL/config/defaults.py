@@ -60,6 +60,7 @@ _C.DATASET.SOURCE_DOMAINS = ()
 _C.DATASET.TARGET_DOMAINS = ()
 # Specify the fold for cross-fold training
 _C.DATASET.FOLD = 0
+_C.DATASET.KEYS = ("data", "seg")
 # Number of labeled instances for the SSL setting
 _C.DATASET.NUM_LABELED = 250
 # Percentage of validation data (only used for SSL datasets)
@@ -89,7 +90,6 @@ _C.DATALOADER.TRAIN_X.BATCH_SIZE = 32
 # Parameter for RandomDomainSampler
 # 0 or -1 means sampling from all domains
 _C.DATALOADER.TRAIN_X.N_DOMAIN = 0
-
 # Setting for train_u data-loader
 _C.DATALOADER.TRAIN_U = CN()
 # Set to false if you want to have unique
