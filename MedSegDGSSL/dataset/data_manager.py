@@ -30,7 +30,7 @@ def build_data_loader(
     num_workers = cfg.DATALOADER.NUM_WORKERS
     # Build data loader
     data_loader = DataLoader(
-        dataset_wrapper(data_source, transform=tfm),
+        dataset_wrapper(data_source, transform=tfm, keys=cfg.DATASET.KEYS),
         batch_size=batch_size,
         sampler=sampler,
         num_workers=num_workers,

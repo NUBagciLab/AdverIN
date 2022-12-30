@@ -12,6 +12,46 @@ import numpy as np
 from torch.utils.data import Dataset
 
 
+class MetaDatasetWarpper(Dataset):
+    def __init__(self, data_files:list, transform, pos_ratio:float=0.33, keys=("data", "seg")):
+        super().__init__()
+        self.data_files = data_files
+        self.transform = transform
+        # Pos_ratio is to balance the positive samples
+        # and negative samples ratio during training
+        self.pos_ratio = pos_ratio
+        self.task = keys
+        self.keys = ("data", "seg")
+        self.dtype_dict ={'data': torch.float, 'seg': torch.long}
+
+    def __len__(self):
+        return len(self.data_files)
+
+    def __getitem__(self, index):
+        out_dict = {}
+        for idx, i in enumerate(index):
+
+            temp_dict = self.data_files[i]
+            inner_dict = {}
+            
+            if np.random.random() < self.pos_ratio:
+                temp_data = np.load(temp_dict["positive"])
+            else:
+                temp_data = np.load(temp_dict["data"])
+
+            for key in self.keys:
+                inner_dict[key] = np.expand_dims(temp_data[key], axis=0)
+            inner_dict = self.transform(**inner_dict)
+            inner_dict['data'] = 2*(inner_dict['data'] - np.min(inner_dict['data'])) / (np.max(inner_dict['data'])-np.min(inner_dict['data']))-1
+
+            for key in self.keys:
+                inner_dict[key] = torch.from_numpy(inner_dict[key][0]).to(self.dtype_dict[key])
+            inner_dict["domain"] = torch.tensor([temp_dict["domain"]])
+
+            out_dict[self.task[idx]] = inner_dict
+        return out_dict
+
+
 class TrainDatasetWarpper(Dataset):
     def __init__(self, data_files:list, transform, pos_ratio:float=0.33, keys=("data", "seg")):
         super().__init__()

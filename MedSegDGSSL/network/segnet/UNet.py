@@ -342,6 +342,8 @@ class UNetWithFeature(nn.Module):
         self.dropout = dropout
         self.bias = bias
         self.adn_ordering = adn_ordering
+        self.features = {}
+
 
         def _create_block(
             inc: int, outc: int, channels: Sequence[int], strides: Sequence[int], is_top: bool
@@ -372,6 +374,7 @@ class UNetWithFeature(nn.Module):
 
             down = self._get_down_layer(inc, c, s, is_top)  # create layer in downsampling path
             up = self._get_up_layer(upc, outc, s, is_top)  # create layer in upsampling path
+            up.register_forward_hook(self.forward_hook(str(outc)))
 
             return self._get_connection_block(down, up, subblock)
 
@@ -384,6 +387,11 @@ class UNetWithFeature(nn.Module):
         
         self.inter_model = _create_block(self.channels[0], self.channels[0], self.channels, self.strides, False)
         self.model = Sequential2(self.input_block, self.inter_model, self.output_block)
+
+    def forward_hook(self, layer_name):
+        def hook(module, input, output):
+            self.features[layer_name] = output
+        return hook
 
     def _get_connection_block(self, down_path: nn.Module, up_path: nn.Module, subblock: nn.Module) -> nn.Module:
         """
@@ -529,11 +537,9 @@ class UNetWithFeature(nn.Module):
         return conv
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x, feature = self.model(x)
-        if self.training:
-            return x, feature
-        else:
-            return x
+        x, _ = self.model(x)
+
+        return x
 
 Unet = UNet
 
@@ -551,6 +557,18 @@ def naiveunet(model_cfg):
 @NETWORK_REGISTRY.register()
 def basicunet(model_cfg):
     unet = UNet(spatial_dims=model_cfg.SPATIAL_DIMS,
+                in_channels= model_cfg.IN_CHANNELS,
+                out_channels= model_cfg.OUT_CHANNELS,
+                channels=model_cfg.FEATURES,
+                strides=model_cfg.STRIDES,
+                num_res_units=1,
+                norm= model_cfg.NORM,
+                dropout = model_cfg.DROPOUT)
+    return unet
+
+@NETWORK_REGISTRY.register()
+def unet_withfeature(model_cfg):
+    unet = UNetWithFeature(spatial_dims=model_cfg.SPATIAL_DIMS,
                 in_channels= model_cfg.IN_CHANNELS,
                 out_channels= model_cfg.OUT_CHANNELS,
                 channels=model_cfg.FEATURES,
