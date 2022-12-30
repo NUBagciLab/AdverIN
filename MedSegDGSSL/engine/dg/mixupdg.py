@@ -43,7 +43,8 @@ class MixUpDG(TrainerX):
         input, label = self.parse_batch_train(batch)
         # direct reverse the order of samples
         label_onehot = to_onehot(label, num_classes=self.num_classes)
-        input_reserve, label_reverse = torch.flip(input, dims=(0,)), torch.flip(label_onehot, dims=(0,))
+        index = torch.randperm(input.size(0)).to(input.device)
+        input_reserve, label_reverse = input[index], label_onehot[index]
         input, label_onehot = self.mixup_ops(input, input_reserve, label_onehot, label_reverse)
         output = self.model(input)
         #print(input.shape, torch.sum(label))

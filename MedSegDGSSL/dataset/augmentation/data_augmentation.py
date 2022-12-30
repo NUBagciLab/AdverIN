@@ -4,7 +4,6 @@ Here to define the basic augmentation method for medical image segmentation
 The augmentation will be based on 2D and using the MONAI augmentation format
 """
 
-from batchgenerators.transforms.abstract_transforms import AbstractTransform
 from batchgenerators.transforms.abstract_transforms import Compose
 from batchgenerators.transforms.channel_selection_transforms import DataChannelSelectionTransform, \
     SegChannelSelectionTransform
@@ -16,7 +15,7 @@ from batchgenerators.transforms.resample_transforms import SimulateLowResolution
 from batchgenerators.transforms.spatial_transforms import SpatialTransform, MirrorTransform,SpatialTransform_2
 from batchgenerators.transforms.utility_transforms import RemoveLabelTransform, RenameTransform, NumpyToTensor
 from MedSegDGSSL.dataset.augmentation.augmentation_params import params_dict
-from MedSegDGSSL.dataset.augmentation.custom_transforms import RandCropByPosNegRatio, RandAdjustResolution, MinMaxNormalization
+from MedSegDGSSL.dataset.augmentation.custom_transforms import RandCropByPosNegRatio, RandAdjustResolution, MinMaxNormalization, MeanStdNormalization
 
 
 def get_default_train_augmentation(patch_size, params_key='3D'):
@@ -53,6 +52,7 @@ def get_default_train_augmentation(patch_size, params_key='3D'):
                              params.get("sharp_range")))
 
     tr_transforms.append(MinMaxNormalization(norm_range=params.get('norm_range')))
+    # tr_transforms.append(MeanStdNormalization(norm_range=params.get('norm_range')))
     tr_transforms = Compose(tr_transforms)
     return tr_transforms
 
@@ -62,6 +62,8 @@ def get_online_eval_augmentation(patch_size, params_key='3D'):
     if params.get("do_crop_by_pn_ratio"):
         val_transforms.append(RandCropByPosNegRatio(patch_size,
                                                    pos=params.get("pos_ratio"), neg=params.get("neg_ratio")))
+    val_transforms.append(MinMaxNormalization(norm_range=params.get('norm_range')))
+    # val_transforms.append(MeanStdNormalization(norm_range=params.get('norm_range')))
     val_transforms = Compose(val_transforms)
     return val_transforms
 

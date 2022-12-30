@@ -607,7 +607,6 @@ class StyleAugUNetWithFeature(nn.Module):
             return x, feature
         else:
             return x
-        return x
 
 StyleAugUnet = StyleAugUNet
 
