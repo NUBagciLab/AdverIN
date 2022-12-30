@@ -6,7 +6,6 @@ from MedSegDGSSL.network import build_network
 from MedSegDGSSL.dataset.data_manager import DataManager
 from MedSegDGSSL.dataset.dataset import MetaDatasetWarpper
 from MedSegDGSSL.utils import count_num_param
-import pdb
 
 
 
@@ -101,7 +100,7 @@ class MetaLearning(TrainerX):
         # update model2 parameter and make parameter of model1 and model2 consistent
         self.model_update("model2")
         self.model1.load_state_dict(self.model2.state_dict())
-        
+
         # return loss
         loss_summary["loss_metatest"] = outer_loss
 
