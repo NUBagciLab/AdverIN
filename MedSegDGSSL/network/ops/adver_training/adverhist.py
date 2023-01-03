@@ -58,8 +58,9 @@ class AdverHist(nn.Module):
 
         # print(torch.softmax(self.params, dim=0))
         map_point =  torch.cumsum(torch.softmax(self.params, dim=1), dim=1)
-        map_point = (map_point-torch.min(map_point, dim=1, keepdim=True))/\
-                    (torch.max(map_point, dim=1, keepdim=True)-torch.min(map_point, dim=1, keepdim=True))
+        map_point_min, _ = torch.min(map_point, dim=1, keepdim=True)
+        map_point_max, _ = torch.max(map_point, dim=1, keepdim=True)
+        map_point = (map_point-map_point_min) / (map_point_max-map_point_min)
         map_point = self.reverse_grad(map_point, p=self.p,
                                       grad_norm=self.grad_norm,
                                       axis=self.axis)

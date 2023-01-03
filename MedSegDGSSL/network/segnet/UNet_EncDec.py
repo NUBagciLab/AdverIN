@@ -354,7 +354,7 @@ class UNet_EncDec(nn.Module):
 Unet_EncDec = UNet_EncDec
 
 @NETWORK_REGISTRY.register()
-def unet_encdec(model_cfg):
+def basicunet_encdec(model_cfg):
     unet = UNet_EncDec(spatial_dims=model_cfg.SPATIAL_DIMS,
                        in_channels= model_cfg.IN_CHANNELS,
                        out_channels= model_cfg.OUT_CHANNELS,

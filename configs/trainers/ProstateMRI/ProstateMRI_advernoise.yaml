@@ -15,7 +15,7 @@ MODEL:
   DROPOUT: 0.3
   NORM: 'BATCH'
   ADVER_MODEL_NAME: 'adver_noise'
-  ADVER_RATE: 0.01
+  ADVER_RATE: 0.1
   ADVER_NOISE:
     P: 2
     GRAD_NORM: 1.

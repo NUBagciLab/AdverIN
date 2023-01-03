@@ -23,18 +23,16 @@ class MetaLearning(TrainerX):
         self.sched1 = build_lr_scheduler(self.optim1, cfg.OPTIM)
         self.register_model("model1", self.model1, self.optim1, self.sched1)
 
-        # build model2 for foward meta-test and update original parameter
-        self.model2 = build_network(cfg.MODEL.NAME, model_cfg=cfg.MODEL)
-        self.model2.to(self.device)
-        print(f"# params2: {count_num_param(self.model2):,}")
-        self.optim2 = build_optimizer(self.model2, cfg.OPTIM)
-        self.sched2 = build_lr_scheduler(self.optim2, cfg.OPTIM)
-        self.register_model("model2", self.model2, self.optim2, self.sched2)
+        # build model for foward meta-test and update original parameter
+        self.model = build_network(cfg.MODEL.NAME, model_cfg=cfg.MODEL)
+        self.model.to(self.device)
+        print(f"# params2: {count_num_param(self.model):,}")
+        self.optim = build_optimizer(self.model, cfg.OPTIM)
+        self.sched = build_lr_scheduler(self.optim, cfg.OPTIM)
+        self.register_model("model", self.model, self.optim, self.sched)
         
-        # make model1 and model2 have same parameter
-        self.model1.load_state_dict(self.model2.state_dict())
-        self.model = self.model2
-        
+        # make model1 and model have same parameter
+        self.model1.load_state_dict(self.model.state_dict())
 
     def build_data_loader(self):
         """Create essential data-related attributes.
@@ -67,6 +65,11 @@ class MetaLearning(TrainerX):
                 test_input, test_label, test_domain = batch[keys[idx]].values()
                 test_input = test_input.to(self.device)
                 test_label = test_label.to(self.device)
+                
+                # just for zero setting the gradient to zeros
+                loss = torch.sum(0*self.model(test_input))
+                loss.backward()
+                self.model.zero_grad()
                 continue
 
             # get meta-train data
@@ -91,10 +94,11 @@ class MetaLearning(TrainerX):
             self.model_backward(outer_loss)
             for pp, qq in zip(self.model1.parameters(), self.model2.parameters()):
                 if pp.grad is not None:
-                    if qq.grad is not None:
-                        qq.grad += pp.grad / (len(self.cfg.DATASET.SOURCE_DOMAINS) - 1)    
+                    qq.grad += pp.grad / (len(self.cfg.DATASET.SOURCE_DOMAINS) - 1)
+                    '''   
                     else:
-                        qq.grad = pp.grad / (len(self.cfg.DATASET.SOURCE_DOMAINS) - 1)    
+                        qq.grad = pp.grad / (len(self.cfg.DATASET.SOURCE_DOMAINS) - 1)
+                    '''  
         
 
         # update model2 parameter and make parameter of model1 and model2 consistent
