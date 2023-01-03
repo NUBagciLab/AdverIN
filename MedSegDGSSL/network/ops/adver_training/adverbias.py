@@ -65,7 +65,7 @@ class AdverBias(nn.Module):
                                     mode=interp_mode, align_corners=False)
         self.params = nn.parameter.Parameter(torch.ones(size=control_size),
                                              requires_grad=True)
-    
+
     def forward(self, x):
         if not self.training:
             return x
