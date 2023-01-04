@@ -15,7 +15,7 @@ MODEL:
   FEATURES: [32, 32, 64, 64, 128, 128, 256]
   STRIDES: [2, 2, 2, 2, 2, 2]
   DROPOUT: 0.3
-  NORM: 'INSTANCE'
+  NORM: 'BATCH'
 
 DATALOADER:
   TRAIN_X:
@@ -27,7 +27,12 @@ DATALOADER:
 
 
 OPTIM:
-  NAME: 'sgd'
-  LR: 0.01
   MAX_EPOCH: 1000
-  LR_SCHEDULER: 'cosine'
+  UPDATE_OPTIM:
+    NAME: 'adamw'
+    LR: 0.01
+    LR_SCHEDULER: 'cosine'
+  META_OPTIM:
+    NAME: 'adamw'
+    LR: 0.001
+    LR_SCHEDULER: 'cosine'    

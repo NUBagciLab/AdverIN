@@ -17,7 +17,8 @@ def build_data_loader(
     n_domain=0,
     tfm=None,
     is_train=True,
-    dataset_wrapper=None
+    dataset_wrapper=None,
+    keys=('data', 'seg')
 ):
     # Build sampler
     sampler = build_sampler(
@@ -30,7 +31,7 @@ def build_data_loader(
     num_workers = cfg.DATALOADER.NUM_WORKERS
     # Build data loader
     data_loader = DataLoader(
-        dataset_wrapper(data_source, transform=tfm, keys=cfg.DATASET.KEYS),
+        dataset_wrapper(data_source, transform=tfm, keys=keys),
         batch_size=batch_size,
         sampler=sampler,
         num_workers=num_workers,
@@ -72,6 +73,7 @@ class DataManager:
         custom_tfm_train=None,
         custom_tfm_test=None,
         custom_tfm_unlabel=None,
+        train_dataset_wrapper=None,
         dataset_wrapper=None,
         set_kfold=False,
     ):
@@ -105,6 +107,11 @@ class DataManager:
         else:
             print('* Using custom dataset wrapper')
 
+        if train_dataset_wrapper is None:
+            train_dataset_wrapper = TrainDatasetWarpper
+        else:
+            print('* Using custom train dataset wrapper')
+
         # Build train_loader_x
         train_loader_x = build_data_loader(
             cfg,
@@ -114,7 +121,8 @@ class DataManager:
             n_domain=cfg.DATALOADER.TRAIN_X.N_DOMAIN,
             tfm=tfm_train,
             is_train=True,
-            dataset_wrapper=dataset_wrapper
+            dataset_wrapper=train_dataset_wrapper,
+            keys = cfg.DATASET.KEYS
         )
 
         # Build train_loader_u
@@ -137,7 +145,8 @@ class DataManager:
                 n_domain=n_domain_,
                 tfm=tfm_unlabel,
                 is_train=True,
-                dataset_wrapper=dataset_wrapper
+                dataset_wrapper=train_dataset_wrapper,
+                keys = cfg.DATASET.KEYS
             )
 
         # Build val_loader

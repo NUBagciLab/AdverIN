@@ -60,7 +60,6 @@ _C.DATASET.SOURCE_DOMAINS = ()
 _C.DATASET.TARGET_DOMAINS = ()
 # Specify the fold for cross-fold training
 _C.DATASET.FOLD = 0
-_C.DATASET.KEYS = ("data", "seg")
 # Number of labeled instances for the SSL setting
 _C.DATASET.NUM_LABELED = 250
 # Percentage of validation data (only used for SSL datasets)

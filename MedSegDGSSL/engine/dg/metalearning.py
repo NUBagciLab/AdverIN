@@ -1,4 +1,4 @@
-
+import copy
 import torch
 from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
 from MedSegDGSSL.optim import build_optimizer, build_lr_scheduler
@@ -6,8 +6,9 @@ from MedSegDGSSL.network import build_network
 from MedSegDGSSL.dataset.data_manager import DataManager
 from MedSegDGSSL.dataset.dataset import MetaDatasetWarpper
 from MedSegDGSSL.utils import count_num_param
+import pdb
 
-
+from MedSegDGSSL.metrics import compute_dice
 
 @TRAINER_REGISTRY.register()
 class MetaLearning(TrainerX):
@@ -19,20 +20,20 @@ class MetaLearning(TrainerX):
         self.model1 = build_network(cfg.MODEL.NAME, model_cfg=cfg.MODEL)
         self.model1.to(self.device)
         print(f"# params1: {count_num_param(self.model1):,}")
-        self.optim1 = build_optimizer(self.model1, cfg.OPTIM)
-        self.sched1 = build_lr_scheduler(self.optim1, cfg.OPTIM)
+        self.optim1 = build_optimizer(self.model1, cfg.OPTIM.UPDATE_OPTIM)
+        self.sched1 = build_lr_scheduler(self.optim1, cfg.OPTIM.UPDATE_OPTIM)
         self.register_model("model1", self.model1, self.optim1, self.sched1)
 
         # build model for foward meta-test and update original parameter
         self.model = build_network(cfg.MODEL.NAME, model_cfg=cfg.MODEL)
         self.model.to(self.device)
         print(f"# params2: {count_num_param(self.model):,}")
-        self.optim = build_optimizer(self.model, cfg.OPTIM)
-        self.sched = build_lr_scheduler(self.optim, cfg.OPTIM)
+        self.optim = build_optimizer(self.model, cfg.OPTIM.META_OPTIM)
+        self.sched = build_lr_scheduler(self.optim, cfg.OPTIM.META_OPTIM)
         self.register_model("model", self.model, self.optim, self.sched)
         
         # make model1 and model have same parameter
-        self.model1.load_state_dict(self.model.state_dict())
+        self.model1.load_state_dict(copy.deepcopy(self.model.state_dict()))
 
     def build_data_loader(self):
         """Create essential data-related attributes.
@@ -54,9 +55,10 @@ class MetaLearning(TrainerX):
 
     def forward_backward(self, batch):
         
-        outer_loss = torch.tensor(0., device=self.device)
         loss_summary = {}
         keys = list(batch.keys())
+
+        self.model_zero_grad("model")
 
         for idx, task in enumerate(batch):
 
@@ -88,22 +90,32 @@ class MetaLearning(TrainerX):
             # do metatest and get outer loss
             test_output = self.model1(test_input)
             outer_loss = self.loss_func(test_output, test_label)
-
-            # backward model1 and trasfer gradient from model1 to model2
+            dice_value = compute_dice(test_output, test_label)
+            for i in range(self.num_classes-1):
+                loss_summary[f'dice {str(i+1)}'] = dice_value[i+1].item()
+            
+            # copy the BN set up
+            """            
+            for key in self.model1.state_dict().keys():
+                if 'ADN.N' in key:
+                    self.model.state_dict()[key] = self.model1.state_dict()[key].detach().clone()"""
+                    
+            # backward model1 and trasfer gradient from model1 to model
             self.model_zero_grad("model1")
             self.model_backward(outer_loss)
-            for pp, qq in zip(self.model1.parameters(), self.model2.parameters()):
-                if pp.grad is not None:
-                    qq.grad += pp.grad / (len(self.cfg.DATASET.SOURCE_DOMAINS) - 1)
-                    '''   
-                    else:
-                        qq.grad = pp.grad / (len(self.cfg.DATASET.SOURCE_DOMAINS) - 1)
-                    '''  
-        
 
-        # update model2 parameter and make parameter of model1 and model2 consistent
-        self.model_update("model2")
-        self.model1.load_state_dict(self.model2.state_dict())
+            for pp, qq in zip(self.model1.parameters(), self.model.parameters()):
+                if pp.grad is not None:
+                    if qq.grad is not None:
+                        qq.grad += copy.deepcopy(pp.grad) / (len(self.cfg.DATASET.SOURCE_DOMAINS) - 1)
+ 
+
+            self.model1.load_state_dict(copy.deepcopy(self.model.state_dict()))
+
+
+        # update model parameter and make parameter of model1 and model consistent
+        self.model_update("model")
+        self.model1.load_state_dict(self.model.state_dict())
 
         # return loss
         loss_summary["loss_metatest"] = outer_loss
