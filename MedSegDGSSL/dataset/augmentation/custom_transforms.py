@@ -180,7 +180,7 @@ class MinMaxNormalization(AbstractTransform):
     def __call__(self, **data_dict):
         data = data_dict.get(self.data_key)
     
-        data_dict[self.data_key] = (data - np.max(data)) / (np.max(data) - np.min(data))*\
+        data_dict[self.data_key] = (data - np.min(data)) / (np.max(data) - np.min(data))*\
                                     (self.norm_range[1]-self.norm_range[0]) + self.norm_range[0]
 
         return data_dict
