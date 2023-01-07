@@ -9,8 +9,10 @@ D5=UCL
 D6=RUNMC
 
 SEED=0
-trainers_list=(Vanilla Vanilla RandConvDG MixUpDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG AdverTraining AdverTraining AdverTraining)
-methods_list=(bnorm inorm randconv mixup mixstyle dsu padain binorm adverbias adverhist advernoise)
+#trainers_list=(Vanilla Vanilla RandConvDG MixUpDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG AdverTraining AdverTraining AdverTraining RSCDG)
+#methods_list=(bnorm inorm randconv mixup mixstyle dsu padain binorm adverbias adverhist advernoise rsc)
+trainers_list=(RSCDG AlignFeaturesDG AlignFeaturesDG)
+methods_list=(rsc alignmmd aligncrossentropy)
 cuda_device=0
 
 int=0
@@ -50,7 +52,7 @@ do
     --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
     --output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/${D4} & )
 
-    (CUDA_VISIBLE_DEVICES=4 python MedSegDGSSL/tools/train.py \
+    (CUDA_VISIBLE_DEVICES=5 python MedSegDGSSL/tools/train.py \
     --root  ${DATA} \
     --trainer ${trainer} \
     --source-domains ${D1} ${D2} ${D4} ${D6} ${D5} \
@@ -59,7 +61,7 @@ do
     --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
     --output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/${D3} & )
 
-    (CUDA_VISIBLE_DEVICES=5 python MedSegDGSSL/tools/train.py \
+    (CUDA_VISIBLE_DEVICES=6 python MedSegDGSSL/tools/train.py \
     --root  ${DATA} \
     --trainer ${trainer} \
     --source-domains ${D1} ${D4} ${D3} ${D6} ${D5} \
@@ -68,7 +70,7 @@ do
     --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
     --output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/${D2} & )
 
-    (CUDA_VISIBLE_DEVICES=6 python MedSegDGSSL/tools/train.py \
+    (CUDA_VISIBLE_DEVICES=7 python MedSegDGSSL/tools/train.py \
     --root  ${DATA} \
     --trainer ${trainer} \
     --source-domains ${D4} ${D2} ${D3} ${D6} ${D5} \

@@ -1,30 +1,21 @@
 import torch
+import torch.nn as nn
 from torch.nn import functional as F
 
 
-def cross_entropy(input, target, label_smooth=0, reduction='mean'):
-    """Cross entropy loss.
+class CrossEntropyDistance(nn.Module):
+    """CrossEntropy Distance
 
-    Args:
-        input (torch.Tensor): logit matrix with shape of (batch, num_classes).
-        target (torch.LongTensor): int label matrix.
-        label_smooth (float, optional): label smoothing hyper-parameter.
-            Default is 0.
-        reduction (str, optional): how the losses for a mini-batch
-            will be aggregated. Default is 'mean'.
+    Calculate the distance between two distribution using 
     """
-    num_classes = input.shape[1]
-    log_prob = F.log_softmax(input, dim=1)
-    zeros = torch.zeros(log_prob.size())
-    target = zeros.scatter_(1, target.unsqueeze(1).data.cpu(), 1)
-    target = target.type_as(input)
-    target = (1-label_smooth) * target + label_smooth/num_classes
-    loss = (-target * log_prob).sum(1)
-    if reduction == 'mean':
-        return loss.mean()
-    elif reduction == 'sum':
-        return loss.sum()
-    elif reduction == 'none':
+    def __init__(self) -> None:
+        super().__init__()
+        self.eps = 1e-6
+        self.activation = F.softmax
+    
+    def forward(self, x, y):
+        x = self.activation(x, dim=-1)
+        y = self.activation(y, dim=-1)
+        loss = torch.mean(-torch.mm(x, torch.log(torch.clip(y.t(), min=self.eps)))-
+                          torch.mm(y, torch.log(torch.clip(x.t(), min=self.eps))))
         return loss
-    else:
-        raise ValueError

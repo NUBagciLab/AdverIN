@@ -5,7 +5,7 @@ from torch.nn import functional as F
 
 class MaximumMeanDiscrepancy(nn.Module):
 
-    def __init__(self, kernel_type='rbf', normalize=False):
+    def __init__(self, kernel_type='linear', normalize=False):
         super(MaximumMeanDiscrepancy, self).__init__()
         self.kernel_type = kernel_type
         self.normalize = normalize
@@ -27,16 +27,16 @@ class MaximumMeanDiscrepancy(nn.Module):
 
     def linear_mmd(self, x, y):
         # k(x, y) = x^T y
-        k_xx = self.remove_self_distance(torch.mm(x, x.t()))
-        k_yy = self.remove_self_distance(torch.mm(y, y.t()))
+        k_xx = torch.mm(x, x.t())
+        k_yy = torch.mm(y, y.t())
         k_xy = torch.mm(x, y.t())
         return k_xx.mean() + k_yy.mean() - 2 * k_xy.mean()
 
     def poly_mmd(self, x, y, alpha=1., c=2., d=2):
         # k(x, y) = (alpha * x^T y + c)^d
-        k_xx = self.remove_self_distance(torch.mm(x, x.t()))
+        k_xx = torch.mm(x, x.t())
         k_xx = (alpha*k_xx + c).pow(d)
-        k_yy = self.remove_self_distance(torch.mm(y, y.t()))
+        k_yy = torch.mm(y, y.t())
         k_yy = (alpha*k_yy + c).pow(d)
         k_xy = torch.mm(x, y.t())
         k_xy = (alpha*k_xy + c).pow(d)
@@ -45,11 +45,11 @@ class MaximumMeanDiscrepancy(nn.Module):
     def rbf_mmd(self, x, y):
         # k_xx
         d_xx = self.euclidean_squared_distance(x, x)
-        d_xx = self.remove_self_distance(d_xx)
+        # d_xx = d_xx
         k_xx = self.rbf_kernel_mixture(d_xx)
         # k_yy
         d_yy = self.euclidean_squared_distance(y, y)
-        d_yy = self.remove_self_distance(d_yy)
+        # d_yy = d_yy
         k_yy = self.rbf_kernel_mixture(d_yy)
         # k_xy
         d_xy = self.euclidean_squared_distance(x, y)

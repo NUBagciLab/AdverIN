@@ -9,8 +9,8 @@ D5=UCL
 D6=RUNMC
 
 SEED=0
-method=bnorm
-trainer=Vanilla
+method=alignmmd
+trainer=AlignFeaturesDG
 cuda_device=0
 
 (CUDA_VISIBLE_DEVICES=7 python MedSegDGSSL/tools/train.py \

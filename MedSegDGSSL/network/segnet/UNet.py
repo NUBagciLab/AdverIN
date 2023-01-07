@@ -536,10 +536,13 @@ class UNetWithFeature(nn.Module):
         
         return conv
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x, _ = self.model(x)
+    def forward(self, x: torch.Tensor):
 
-        return x
+        x, feature = self.model(x)
+        if self.training:
+            return x, feature
+        else:
+            return x
 
 Unet = UNet
 
@@ -567,7 +570,7 @@ def basicunet(model_cfg):
     return unet
 
 @NETWORK_REGISTRY.register()
-def unet_withfeature(model_cfg):
+def basicunet_withfeature(model_cfg):
     unet = UNetWithFeature(spatial_dims=model_cfg.SPATIAL_DIMS,
                 in_channels= model_cfg.IN_CHANNELS,
                 out_channels= model_cfg.OUT_CHANNELS,

@@ -12,25 +12,25 @@ SEED=0
 method=intradomain
 cuda_device=0
 
-(CUDA_VISIBLE_DEVICES=7 python MedSegDGSSL/tools/train.py \
+(CUDA_VISIBLE_DEVICES=0 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer IntraTrainer \
 --source-domains ${D1} ${D2} ${D3} ${D4} ${D5} ${D6} \
 --seed ${SEED} \
 --fold 0 \
 --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
---output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/fold_0 )
+--output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/fold_0 &)
 
-(CUDA_VISIBLE_DEVICES=7 python MedSegDGSSL/tools/train.py \
+(CUDA_VISIBLE_DEVICES=1 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer IntraTrainer \
 --source-domains ${D1} ${D2} ${D3} ${D4} ${D5} ${D6} \
 --seed ${SEED} \
 --fold 1 \
 --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
---output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/fold_1 )
+--output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}/fold_1 &)
 
-(CUDA_VISIBLE_DEVICES=7 python MedSegDGSSL/tools/train.py \
+(CUDA_VISIBLE_DEVICES=3 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer IntraTrainer \
 --source-domains ${D1} ${D2} ${D3} ${D4} ${D5} ${D6} \

@@ -9,3 +9,4 @@ from .advertraining import AdverTraining
 from .rscdg import RSCDG
 from .saml import SAML
 from .metalearning import MetaLearning
+from .featurealign import AlignFeaturesDG
