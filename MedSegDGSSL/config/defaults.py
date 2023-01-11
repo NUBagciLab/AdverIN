@@ -54,6 +54,7 @@ _C.DATASET = CN()
 # Directory where datasets are stored
 _C.DATASET.ROOT = ''
 _C.DATASET.NAME = ''
+_C.DATASET.KEYS = ('data', 'seg')
 # List of names of source domains
 _C.DATASET.SOURCE_DOMAINS = ()
 # List of names of target domains

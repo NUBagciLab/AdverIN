@@ -66,7 +66,9 @@ class AdverHist(nn.Module):
                                       axis=self.axis)
         ### 1st order interpolation
         x = interp1d(map_point, (x-self.data_min)/(self.data_max-self.data_min), self.num_control_point)
-        x = self.data_min + (self.data_max - self.data_min)*x
+        data_min, data_max = self.data_min + (self.data_max-self.data_min)/4*np.random.random(), \
+                                self.data_max - (self.data_max-self.data_min)/4*np.random.random()
+        x = data_min + (data_max - data_min)*x
 
         # reset the param after adversarial attacking
         # Note this will not influence the storaged grad or influence the optimizer updating

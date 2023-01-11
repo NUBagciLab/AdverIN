@@ -6,3 +6,5 @@ from .mixstyle import MixStyle, MixStyle2
 from .pAdaIN import PermuteAdaptiveInstanceNorm2d as pAdaIN
 from .rbn import RepresentativeBatchNorm2d
 from .transnorm import TransNorm1d, TransNorm2d
+from .csu import CorrelatedDistributionUncertainty as CSU
+

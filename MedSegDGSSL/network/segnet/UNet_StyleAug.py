@@ -17,7 +17,7 @@ from monai.utils import SkipMode
 
 from MedSegDGSSL.network.build import NETWORK_REGISTRY
 from MedSegDGSSL.network.segnet.UNet import ConvolutionWrapper, ResidualUnitWrapper, Sequential2, SkipConnectionWrapper
-from MedSegDGSSL.network.ops.style_augmentation import DSU, MixStyle, pAdaIN
+from MedSegDGSSL.network.ops.style_augmentation import DSU, MixStyle, pAdaIN, CSU
 from MedSegDGSSL.network.ops.style_augmentation import BatchInstanceNorm, BatchInstanceNorm2d, BatchInstanceNorm3d
 
 
@@ -614,6 +614,22 @@ StyleAugUnet = StyleAugUNet
 def basicunet_dsu(model_cfg):
     style_aug = DSU
     styleaug_kwargs = {"prob": model_cfg.DSU.PROB}
+    unet = StyleAugUNet(spatial_dims=model_cfg.SPATIAL_DIMS,
+                        in_channels= model_cfg.IN_CHANNELS,
+                        out_channels= model_cfg.OUT_CHANNELS,
+                        channels=model_cfg.FEATURES,
+                        strides=model_cfg.STRIDES,
+                        style_aug=style_aug,
+                        styleaug_kwargs=styleaug_kwargs,
+                        num_res_units=1,
+                        norm= Norm.BATCH,
+                        dropout = model_cfg.DROPOUT)
+    return unet
+
+@NETWORK_REGISTRY.register()
+def basicunet_csu(model_cfg):
+    style_aug = CSU
+    styleaug_kwargs = {"prob": model_cfg.CSU.PROB}
     unet = StyleAugUNet(spatial_dims=model_cfg.SPATIAL_DIMS,
                         in_channels= model_cfg.IN_CHANNELS,
                         out_channels= model_cfg.OUT_CHANNELS,
