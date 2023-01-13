@@ -16,6 +16,8 @@ from sklearn.model_selection import KFold
 from MedSegDGSSL.preprocess.utils import (image_preprocessor_2d, 
                               image_preprocessor_3d, image_preprocessor_3d_slice, 
                               image_preprocessor_3d_space)
+from MedSegDGSSL.preprocess.utils_slic import image_preprocessor_2d_withregion, image_preprocessor_3d_slice_withregion
+
 from MedSegDGSSL.utils.tools import mkdir_if_missing
 
 TWO_DIM_DTYPE = ["png", "jpg"]
@@ -56,6 +58,11 @@ class Preprocessor(object):
         else:
             self.target_size = tuple(self.data_preprocess_config["target_size"])
         
+        self.extract_region = False
+        if "extract_region" in self.data_preprocess_config.keys():
+            self.extract_region = self.data_preprocess_config["extract_region"]
+            assert not (self.extract_region and self.is_threeD_training), "Not support 3D Training"
+
         self.fold_nums:int = 3
         if "fold_nums" in self.data_preprocess_config.keys():
             self.fold_nums = int(self.data_preprocess_config["fold_nums"])
@@ -122,10 +129,18 @@ class Preprocessor(object):
             else:
                 assert "num_slice" in self.data_preprocess_config.keys(), "You should define the slice number"
                 num_slice = self.data_preprocess_config["num_slice"]
-                map_func = func.partial(image_preprocessor_3d_slice, target_size=self.target_size,
+                if self.extract_region:
+                    map_func = func.partial(image_preprocessor_3d_slice_withregion, target_size=self.target_size,
+                                                               clip_percent=(0.5, 99.5), num_slice=num_slice)
+                else:
+                    map_func = func.partial(image_preprocessor_3d_slice, target_size=self.target_size,
                                                                clip_percent=(0.5, 99.5), num_slice=num_slice)
         else:
-            map_func = func.partial(image_preprocessor_2d, target_size=self.target_size,
+            if self.extract_region:
+                map_func = func.partial(image_preprocessor_2d_withregion, target_size=self.target_size,
+                                                               clip_percent=(0.5, 99.5), num_slice=num_slice)
+            else:
+                map_func = func.partial(image_preprocessor_2d, target_size=self.target_size,
                                                                clip_percent=(0.5, 99.5))
         
         for domain in self.domains:

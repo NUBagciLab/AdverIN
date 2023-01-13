@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Function
 
+eps = 1e-4
 
 class _ReverseGrad(Function):
 
@@ -43,7 +44,7 @@ class _ReverseNormGrad(Function):
     @staticmethod
     def backward(ctx, grad_output):
         grad_norm, p, axis = ctx.grad_norm, ctx.p, ctx.grad_axis
-        grad_output = grad_norm*grad_output / torch.norm(grad_output, p=p, dim=axis, keepdim=True)
+        grad_output = grad_norm*grad_output / (torch.norm(grad_output, p=p, dim=axis, keepdim=True)+eps)
         return -grad_output, None, None, None
 
 

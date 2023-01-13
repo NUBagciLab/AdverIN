@@ -73,7 +73,6 @@ class AdverBias(nn.Module):
         x = x * bias
         # reset the param after adversarial attacking
         # Note this will not influence the storaged grad
-        self.params.data = torch.ones_like(self.params.data)
         return x
 
     def generate_bias(self, control_point):
@@ -81,6 +80,12 @@ class AdverBias(nn.Module):
         bias = torch.clamp_(bias, min=(1-self.magnitude),
                             max=(1+self.magnitude))
         return bias
+    
+    def reset(self):
+        # reset the param after adversarial attacking
+        # Note this will not influence the storaged grad or influence the optimizer updating
+        self.params.data = torch.ones_like(self.params.data)
+
 
 @NETWORK_REGISTRY.register()
 def adver_bias(cfg):

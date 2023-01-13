@@ -22,7 +22,7 @@ class TrainDatasetWarpper(Dataset):
         # and negative samples ratio during training
         self.pos_ratio = pos_ratio
         self.keys = keys
-        self.dtype_dict ={'data': torch.float, 'seg': torch.long}
+        self.dtype_dict ={key: torch.long if key=='seg' else torch.float for key in self.keys}
 
     def __len__(self):
         return len(self.data_files)
@@ -60,7 +60,7 @@ class EvalDatasetWarpper(Dataset):
             self.meta_data_maps[domain] = meta_data
 
         self.keys = keys
-        self.dtype_dict ={'data': torch.float, 'seg': torch.long}
+        self.dtype_dict ={key: torch.long if key=='seg' else torch.float for key in self.keys}
 
     def __len__(self):
         return len(self.data_files)
@@ -75,6 +75,9 @@ class EvalDatasetWarpper(Dataset):
 
         for key in self.keys:
             out_dict[key] = torch.from_numpy(temp_data[key]).to(self.dtype_dict[key])
+
+        '''out_dict['data'] = torch.clip((out_dict['data'] - torch.mean(out_dict['data'])) / (3*torch.std(out_dict['data'])),
+                                        min=-1., max=1.)'''
 
         out_dict["meta"] = self.meta_data_maps[domain]["case_info"][case_name]
         out_dict["meta"]["domain"] = domain
@@ -99,7 +102,7 @@ class Eval3DDatasetWarpperFrom2D(Dataset):
 
         self.case_names = list(self.domains_map.keys())
         self.keys = keys
-        self.dtype_dict ={'data': torch.float, 'seg': torch.long}
+        self.dtype_dict ={key: torch.long if key=='seg' else torch.float for key in self.keys}
 
     def __len__(self):
         return len(self.case_names)
@@ -117,9 +120,12 @@ class Eval3DDatasetWarpperFrom2D(Dataset):
                                              case_name+"_slice{:03d}.npz".format(i)))
             for key in self.keys:
                 out_dict[key].append(temp_data[key])
+
         for key in self.keys:
             out_dict[key] = torch.from_numpy(np.stack(out_dict[key])).to(self.dtype_dict[key])
 
+        '''out_dict['data'] = torch.clip((out_dict['data'] - torch.mean(out_dict['data'])) / (3*torch.std(out_dict['data'])),
+                                        min=-1., max=1.)'''
         out_dict["meta"] = self.meta_data_maps[domain]["case_info"][case_name]
         out_dict["meta"]["domain"] = domain
         return out_dict
@@ -135,7 +141,7 @@ class MetaDatasetWarpper(Dataset):
         self.pos_ratio = pos_ratio
         self.task = keys
         self.keys = ("data", "seg")
-        self.dtype_dict ={'data': torch.float, 'seg': torch.long}
+        self.dtype_dict ={key: torch.long if key=='seg' else torch.float for key in self.keys}
 
     def __len__(self):
         return len(self.data_files)

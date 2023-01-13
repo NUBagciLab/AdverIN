@@ -37,10 +37,14 @@ class AdverNoise(nn.Module):
         params = self.reverse_grad(self.params, self.p,
                                    self.grad_norm, self.axis)
         x = x + params
+        
+        return x
+    
+
+    def reset(self):
         # reset the param after adversarial attacking
         # Note this will not influence the storaged grad
         self.params.data = torch.zeros_like(self.params.data)
-        return x
 
 
 @NETWORK_REGISTRY.register()
