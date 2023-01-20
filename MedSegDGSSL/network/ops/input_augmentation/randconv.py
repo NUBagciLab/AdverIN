@@ -25,24 +25,17 @@ class RandConv(nn.Module):
                       supports: kaiming_normal, kaiming_uniform, xavier_normal
     """
     def __init__(self, input_channel:int, output_channel:int, prob:float=0.5,
-                       n_dim:int=2, kernel_size:int=3, distribution='kaiming_normal'):
+                       n_dim:int=2, kernel_size_list:list=[1, 3, 5, 7], distribution='kaiming_normal'):
         super().__init__()
         self.input_channel = input_channel
         self.output_channel = output_channel
         self.n_dim = n_dim
         self.prob = prob
-        self.kernel_size = kernel_size
+        self.kernel_size_list = kernel_size_list
         self.distribution = distribution
-
-        if n_dim == 2:
-            self.conv = nn.Conv2d(in_channels=input_channel, out_channels=output_channel,
-                                  kernel_size=kernel_size, bias=False, padding=kernel_size//2)
-        elif n_dim == 3:
-            self.conv = nn.Conv3d(in_channels=input_channel, out_channels=output_channel,
-                                  kernel_size=kernel_size, bias=False, padding=kernel_size//2)
-        else:
-            raise NameError(f"Random Conv {n_dim} Not implement now")
+        
         # self.register_buffer("rand_conv", self.conv)
+        self.reset_conv()
         self.random_func = self.get_random()
 
     @torch.no_grad()
@@ -65,5 +58,13 @@ class RandConv(nn.Module):
         return random_func
 
     def reset_conv(self):
+        kernel_size = np.random.choice(self.kernel_size_list)
+        if self.n_dim == 2:
+            self.conv = nn.Conv2d(in_channels=self.input_channel, out_channels=self.output_channel,
+                                  kernel_size=kernel_size, bias=False, padding=kernel_size//2)
+        elif self.n_dim == 3:
+            self.conv = nn.Conv3d(in_channels=self.input_channel, out_channels=self.output_channel,
+                                  kernel_size=kernel_size, bias=False, padding=kernel_size//2)
+        else:
+            raise NameError(f"Random Conv {self.n_dim} Not implement now")
         self.random_func(self.conv.weight)
-
