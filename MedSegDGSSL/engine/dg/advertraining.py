@@ -34,7 +34,7 @@ class AdverTraining(TrainerX):
         output = self.model(self.adv(input))
         loss_adver = self.loss_func(output, label)
         # Perhaps clip the grad if needed?
-        # orch.nn.utils.clip_grad_norm_(self.adv.parameters())
+        # torch.nn.utils.clip_grad_norm_(self.adv.parameters())
         self.model_backward_and_update(loss_adver, 'adv')
 
         output = self.model(self.adv(input))
@@ -95,18 +95,18 @@ class AdverTraining(TrainerX):
 class AdverHist(AdverTraining):
     """ Specify for adverhist trianing
     """
+    def __init__(self, cfg):
+        super().__init__(cfg)
+
     def forward_backward(self, batch):
         input, label, region = self.parse_batch_train(batch)
 
         # Compute General Attacking
         # select region
-        select_region = self.select_region(region)
-        output = self.model(self.adv(input)*select_region + (1-select_region)*input)
-        loss_adver = self.loss_func(output, label)
-        # Perhaps clip the grad if needed?
-        # orch.nn.utils.clip_grad_norm_(self.adv.parameters())
+        select_region = self.select_region(region, label)
+        output_temp = self.model(self.adv(input)*select_region + (1-select_region)*input)
+        loss_adver = self.loss_func(output_temp, label)
         self.model_backward_and_update(loss_adver, 'adv')
-        # print(torch.max(self.adv.params), torch.min(self.adv.params))
 
         output = self.model(self.adv(input)*select_region + (1-select_region)*input)
         #print(input.shape, torch.sum(label))
@@ -126,12 +126,22 @@ class AdverHist(AdverTraining):
 
         return loss_summary
     
-    def select_region(self, region):
+    def select_region(self, region, label):
         random_index = np.random.randint(self.cfg.MODEL.ADVER_HIST.NUM_REGION,
                                          size=self.cfg.MODEL.ADVER_HIST.SELECT_REGION)
         mask = torch.zeros_like(region)
         for i in list(random_index):
             mask += (region==i)
+        
+        # balance the selection by always draw one positive region
+        positive_region = region * (label > 0.5)
+        pos_number = torch.unique(torch.flatten(positive_region, start_dim=1), dim=1)[:, 1:]
+        b, c = pos_number.shape
+        pos_index = torch.randint(low=0, high=c, size=(b,1), device=label.device)
+        pos_number = torch.gather(pos_number, dim=1, index=pos_index)
+        pos_number = torch.reshape(pos_number, (b, *((1,)*(region.dim()-1))))
+        mask += (region==pos_number)
+
         mask = (mask > 0.5).to(torch.float)
         return mask
 

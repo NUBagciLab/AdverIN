@@ -45,7 +45,7 @@ git clone https://github.com/freshman97/MedSeg_Generalization_Framework.git
 cd MedSeg_Generalization_Framework
 # Create the environment
 conda create -y -n medsegdg python=3.10
-conda activate medsegdg
+conda activate medsegdgs
 conda install pytorch==1.11.0 torchvision==0.12.0 torchaudio==0.11.0 cudatoolkit=11.3 -c pytorch
 # Install the required packages
 pip install -r requirements.txt

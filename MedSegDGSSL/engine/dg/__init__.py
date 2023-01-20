@@ -10,3 +10,4 @@ from .rscdg import RSCDG
 from .saml import SAML
 from .metalearning import MetaLearning
 from .featurealign import AlignFeaturesDG
+from .diffusion import DiffusionTrainer

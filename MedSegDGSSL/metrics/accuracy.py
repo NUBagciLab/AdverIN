@@ -3,6 +3,15 @@ import torch
 # for the numerical issue of dice
 eps = 1e-5
 
+def to_onehot(input:torch.Tensor, num_classes:int=2):
+    """ transfer label to one hot
+    """
+    output_shape = list(input.shape)
+    output_shape[1] = num_classes
+    output = torch.zeros(size=output_shape, device=input.device)
+    output.scatter_(dim=1, index=input.to(torch.long), value=1)
+    return output
+
 def compute_dice(output, target):
     """Computes the Dice over the output and predict value
 

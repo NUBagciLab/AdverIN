@@ -1,4 +1,6 @@
-from .defaults import _C
+from .defaults import _C as _C_ORG
+import copy
+_C = copy.deepcopy(_C_ORG)
 from .build import CONFIG_REGISTRY
 from yacs.config import CfgNode as CN
 

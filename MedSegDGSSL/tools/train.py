@@ -50,6 +50,7 @@ def reset_cfg(cfg, args):
 def setup_cfg(args):
     cfg = get_config(args.trainer)
     reset_cfg(cfg, args)
+    print(cfg)
     if args.config_file:
         cfg.merge_from_file(args.config_file)
     cfg.freeze()

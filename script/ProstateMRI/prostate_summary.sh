@@ -9,10 +9,10 @@ D5=UCL
 D6=RUNMC
 
 SEED=0
-#trainers_list=(Vanilla Vanilla RandConvDG MixUpDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG AdverTraining AdverTraining AdverTraining RSCDG)
-#methods_list=(bnorm inorm randconv mixup mixstyle dsu padain binorm adverbias adverhist advernoise rsc)
-trainers_list=(RSCDG AlignFeaturesDG AlignFeaturesDG)
-methods_list=(rsc alignmmd aligncrossentropy)
+#trainers_list=(Vanilla Vanilla RandConvDG MixUpDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG AdverTraining AdverTraining AdverTraining RSCDG AlignFeaturesDG AlignFeaturesDG)
+#methods_list=(bnorm inorm randconv mixup mixstyle dsu padain binorm adverbias adverhist advernoise rsc alignmmd aligncrossentropy)
+trainers_list=(StyleAugDG)
+methods_list=(csu)
 cuda_device=0
 
 int=0

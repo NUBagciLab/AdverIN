@@ -3,18 +3,8 @@ from torch.nn import functional as F
 import monai.losses as losses
 
 from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
-from MedSegDGSSL.metrics import compute_dice
+from MedSegDGSSL.metrics import compute_dice, to_onehot
 from MedSegDGSSL.network.ops.input_augmentation.mixup import MixUp
-
-
-def to_onehot(input:torch.Tensor, num_classes:int=2):
-    """ transfer label to one hot
-    """
-    output_shape = list(input.shape)
-    output_shape[1] = num_classes
-    output = torch.zeros(size=output_shape, device=input.device)
-    output.scatter_(dim=1, index=input.to(torch.long), value=1)
-    return output
 
 
 @TRAINER_REGISTRY.register()

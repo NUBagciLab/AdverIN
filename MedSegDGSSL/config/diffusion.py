@@ -9,15 +9,21 @@ from yacs.config import CfgNode as CN
 ###########################
 
 ###########################
-# Specify the parameters for Mixup
+# Specify the parameters for Diffusion Model
 ###########################
-# Mixstyle
-_C.MODEL.MIX_UP = CN()
-_C.MODEL.MIX_UP.ALPHA = 0.5
-_C.MODEL.MIX_UP.PROB = 0.5
-_C.MODEL.MIX_UP.ORDER = True
+
+_C.MODEL.NAME = 'diff_unet'
+_C.MODEL.TIME_STEPS = 400
+_C.MODEL.EMBED_CHANNEL = 32
+
+_C.MODEL.DIFFUSION = CN()
+_C.MODEL.DIFFUSION.LOSS = "l1"
 
 
 @CONFIG_REGISTRY.register()
-def MixUpDG():
+def IntraDiffusionTrainer():
+    return _C.clone()
+
+@CONFIG_REGISTRY.register()
+def DiffusionTrainer():
     return _C.clone()

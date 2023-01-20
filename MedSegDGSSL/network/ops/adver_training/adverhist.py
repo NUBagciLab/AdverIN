@@ -18,13 +18,11 @@ def interp1d(y, xi, nbins):
     index_round = torch.floor(index).to(torch.long)
     index_round_pluse_one = torch.clamp_max(index_round + 1, nbins-1).to(torch.long)
     index_left, index_right = index - index_round, index_round_pluse_one-index
-    n_batch = xi.size(0)
-    select_left = torch.reshape(torch.vstack([torch.index_select(y[i], 
-                                              dim=0, index=torch.flatten(index_round[i]))
-                                              for i in range(n_batch)]), shape=index.shape)
-    select_right = torch.reshape(torch.vstack([torch.index_select(y[i],
-                                              dim=0, index=torch.flatten(index_round_pluse_one[i]))
-                                              for i in range(n_batch)]), shape=index.shape)
+    select_left = torch.reshape(torch.gather(y, dim=1, index=torch.flatten(index_round, start_dim=1)),
+                                shape=index.shape)
+    select_right = torch.reshape(torch.gather(y, dim=1, index=torch.flatten(index_round_pluse_one, start_dim=1)),
+                                shape=index.shape)
+
     yi = index_right*select_left + index_left*select_right
 
     return yi
@@ -66,7 +64,9 @@ class AdverHist(nn.Module):
                                       axis=self.axis)
         ### 1st order interpolation
         x = interp1d(map_point, (x-self.data_min)/(self.data_max-self.data_min), self.num_control_point)
-        x = self.data_min + (self.data_max - self.data_min)*x
+        data_min, data_max = self.data_min + (self.data_max-self.data_min)/4*np.random.random(), \
+                                self.data_max - (self.data_max-self.data_min)/4*np.random.random()
+        x = data_min + (data_max - data_min)*x
 
         return x
 

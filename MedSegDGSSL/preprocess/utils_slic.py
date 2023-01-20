@@ -18,7 +18,7 @@ from skimage.segmentation import slic
 from skimage.segmentation import mark_boundaries
 
 def get_region(img):
-    region = slic(img, n_segments=20, compactness=0.2, sigma=1,
+    region = slic(img, n_segments=100, compactness=0.2, sigma=1,
                      start_label=0)
     return region
 

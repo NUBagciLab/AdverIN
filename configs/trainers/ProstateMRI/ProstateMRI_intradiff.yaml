@@ -3,29 +3,21 @@ TRAINING_IS_2D: True
 
 DATASET:
   NAME: 'ProstateMRI'
-  KEYS: ['data', 'region', 'seg']
 
 MODEL:
-  NAME: 'basicunet'
+  NAME: 'medseg_diff'
   SPATIAL_DIMS: 2
   PATCH_SIZE: [384, 384]
   IN_CHANNELS: 3
   OUT_CHANNELS: 2
+  EMBED_CHANNEL: 32
   FEATURES: [32, 32, 64, 64, 128, 128, 256]
   STRIDES: [2, 2, 2, 2, 2, 2]
   DROPOUT: 0.3
   NORM: 'BATCH'
-  ADVER_MODEL_NAME: 'adver_hist'
-  ADVER_RATE: 0.1
-  ADVER_HIST:
-    DATA_MIN: -1.
-    DATA_MAX: 1.
-    CONTROL_POINT: 21
-    PROB: 0.5
-    GRAD_NORM: 10.
-    NUM_REGION: 20
-    SELECT_REGION: 5
-
+  TIME_STEPS: 400
+  DIFFUSION:
+    LOSS: 'l1'
 
 DATALOADER:
   TRAIN_X:
@@ -35,7 +27,7 @@ DATALOADER:
   NUM_WORKERS: 8
 
 OPTIM:
-  NAME: 'sgd'
+  NAME: 'adamw'
   LR: 0.01
   MAX_EPOCH: 1000
   LR_SCHEDULER: 'cosine'
