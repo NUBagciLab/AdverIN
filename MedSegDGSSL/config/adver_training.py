@@ -41,3 +41,7 @@ _C.MODEL.ADVER_BIAS.MAGNITUDE = 0.3
 @CONFIG_REGISTRY.register()
 def AdverTraining():
     return _C.clone()
+
+@CONFIG_REGISTRY.register()
+def AdverHist():
+    return _C.clone()

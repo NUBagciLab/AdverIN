@@ -3,18 +3,39 @@ from torch.nn import functional as F
 
 import time
 import datetime
+from contextlib import contextmanager
+
 from MedSegDGSSL.dataset.data_manager import DataManager
 from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
 from MedSegDGSSL.engine.dg.vanilla import Vanilla
 from MedSegDGSSL.metrics import compute_dice, to_onehot
 from MedSegDGSSL.utils.meters import AverageMeter, MetricMeter
+from MedSegDGSSL.network.diffusion import EMA
 
 
 @TRAINER_REGISTRY.register()
 class DiffusionTrainer(Vanilla):
-    ''' To implement intra domain training process
+    ''' To implement diffusion training process
     use the diffusion model
     '''
+    def build_model(self):
+        super().build_model()
+        self.model_ema = EMA(model=self.model)
+        self.register_model(name='ema', model=self.model_ema)
+
+    @contextmanager
+    def ema_scope(self, context=None):
+        self.model_ema.store(self.model.parameters())
+        self.model_ema.copy_to(self.model)
+        if context is not None:
+            print(f"{context}: Switched to EMA weights")
+        try:
+            yield None
+        finally:
+            self.model_ema.restore(self.model.parameters())
+            if context is not None:
+                print(f"{context}: Restored training weights")
+
     def run_epoch(self):
         self.set_model_mode("train")
         losses = MetricMeter()
@@ -63,13 +84,9 @@ class DiffusionTrainer(Vanilla):
 
     def forward_backward(self, batch, is_eval:bool=False):
         input, label = self.parse_batch_train(batch)
-        label = to_onehot(label, self.num_classes)
-        loss = self.model.get_p_losses(input, label)
-        #print(input.shape, torch.sum(label))
-        self.model_backward_and_update(loss)
-        loss_summary = {
-            'loss': loss.item()}
-
+        self.model_ema.copy_to(self.model)
+        
+        loss_summary = {}
         if is_eval:
             output = self.model(input)
             dice_value = compute_dice(output, label)
@@ -77,6 +94,13 @@ class DiffusionTrainer(Vanilla):
             for i in range(self.num_classes-1):
                 loss_summary[f'dice {str(i+1)}'] = dice_value[i+1].item()
 
+        label = to_onehot(label, self.num_classes)
+        loss = self.model.get_p_losses(input, label)
+        self.model_backward_and_update(loss, 'model')
+        loss_summary['loss'] = loss.item()
+
+        self.model_ema(self.model)
+        
         if (self.batch_idx + 1) == self.num_batches:
             self.update_lr()
 
@@ -93,3 +117,8 @@ class DiffusionTrainer(Vanilla):
         """A generic final evaluation pipeline."""
         # extra_name=f'_fold_{self.cfg.DATASET.FOLD}'
         super().final_evaluation()
+    
+    @torch.no_grad()
+    def test(self, split=None):
+        with self.ema_scope():
+            super().test(split=split)

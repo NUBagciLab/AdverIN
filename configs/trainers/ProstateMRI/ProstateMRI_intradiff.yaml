@@ -4,6 +4,9 @@ TRAINING_IS_2D: True
 DATASET:
   NAME: 'ProstateMRI'
 
+TRAIN:
+  CHECKPOINT_FREQ: 50
+
 MODEL:
   NAME: 'medseg_diff'
   SPATIAL_DIMS: 2
@@ -13,9 +16,9 @@ MODEL:
   EMBED_CHANNEL: 32
   FEATURES: [32, 32, 64, 64, 128, 128, 256]
   STRIDES: [2, 2, 2, 2, 2, 2]
-  DROPOUT: 0.3
+  DROPOUT: 0.
   NORM: 'BATCH'
-  TIME_STEPS: 400
+  TIME_STEPS: 100
   DIFFUSION:
     LOSS: 'l1'
 
@@ -28,6 +31,6 @@ DATALOADER:
 
 OPTIM:
   NAME: 'adamw'
-  LR: 0.01
+  LR: 0.0001
   MAX_EPOCH: 1000
   LR_SCHEDULER: 'cosine'

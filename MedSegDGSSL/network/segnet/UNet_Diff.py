@@ -30,7 +30,7 @@ from monai.networks.layers.factories import Act, Norm
 __all__ = ["UNet_EncDec", "Unet_EncDec"]
 
 
-def timestep_embedding(timesteps, dim, max_period=10000, repeat_only=False):
+def timestep_embedding(timesteps, dim, max_period=1000, repeat_only=False):
     """
     Create sinusoidal timestep embeddings.
     :param timesteps: a 1-D Tensor of N indices, one per batch element.
@@ -629,6 +629,8 @@ class UNet_EncDec(nn.Module):
         self.context_extract = ExtractContext(self.time_steps,
                                               num_stages=len(self.channels))
         self.y_project = nn.Linear(in_features=self.out_channels, out_features=self.embed_channel//2)
+        self.x_project = nn.Linear(in_features=self.in_channels, out_features=self.embed_channel//2)
+        
         '''self.cross_attention = CrossAttentionCondition(query_dim=self.embed_channel,
                                                        context_dim=self.embed_channel,
                                                        heads=8, dim_head=32)'''
@@ -651,13 +653,16 @@ class UNet_EncDec(nn.Module):
         y = torch.transpose(torch.flatten(y, start_dim=2), 1, 2)
         # pdb.set_trace()
         y = self.y_project(y)
+        x = torch.transpose(torch.flatten(x, start_dim=2), 1, 2)
+        # pdb.set_trace()
+        x = self.x_project(x)
 
         if with_context:
             
-            context = self.context_extract(self.context_encoder(x), t)
-            context = torch.transpose(torch.flatten(context, start_dim=2), 1, 2)
+            '''context = self.context_extract(self.context_encoder(x), t)
+            context = torch.transpose(torch.flatten(context, start_dim=2), 1, 2)'''
             # y = self.cross_attention(y, context)
-            y = torch.cat([y, context], dim=1)
+            y = torch.cat([y, x], dim=1)
         else:
             y = torch.cat([y, y], dim=1)
 
