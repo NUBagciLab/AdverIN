@@ -1,0 +1,3 @@
+from .cross_entropy import CrossEntropyDistance
+from .mmd import MaximumMeanDiscrepancy
+from .optimal_transport import SinkhornDivergence, MinibatchEnergyDistance

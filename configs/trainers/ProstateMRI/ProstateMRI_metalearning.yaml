@@ -1,0 +1,38 @@
+DATA_IS_3D: True
+TRAINING_IS_2D: True
+LOSS: 'DiceLoss'
+# CLIPGRADIENTNORM: 10
+
+DATASET:
+  NAME: 'ProstateMRI'
+  KEYS: ('test', 'train1', 'train2', 'train3', 'train4')
+
+MODEL:
+  NAME: 'basicunet'
+  SPATIAL_DIMS: 2
+  IN_CHANNELS: 3
+  OUT_CHANNELS: 2
+  FEATURES: [32, 32, 64, 64, 128, 128, 256]
+  STRIDES: [2, 2, 2, 2, 2, 2]
+  DROPOUT: 0.3
+  NORM: 'BATCH'
+
+DATALOADER:
+  TRAIN_X:
+    BATCH_SIZE: 32
+    SAMPLER: 'MetaSampler'
+  TEST:
+    BATCH_SIZE: 32
+  NUM_WORKERS: 8
+
+
+OPTIM:
+  MAX_EPOCH: 1000
+  UPDATE_OPTIM:
+    NAME: 'adamw'
+    LR: 0.01
+    LR_SCHEDULER: 'cosine'
+  META_OPTIM:
+    NAME: 'adamw'
+    LR: 0.001
+    LR_SCHEDULER: 'cosine'    

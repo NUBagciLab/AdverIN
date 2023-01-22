@@ -1,0 +1,4 @@
+data_dir: "/data/bagcilab/datasets/zheyuan/DGFramework/Fundus"
+out_tag: "2D"
+file_type: "png"
+target_size: [384, 384]
