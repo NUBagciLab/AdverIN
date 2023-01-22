@@ -13,7 +13,7 @@ class RandConvDG(TrainerX):
         n_dim = 2 if self.cfg.TRAINING_IS_2D else 3
         self.rand_conv_ops = RandConv(input_channel=self.cfg.MODEL.IN_CHANNELS,
                                       output_channel=self.cfg.MODEL.IN_CHANNELS,
-                                      n_dim=n_dim, kernel_size_list=self.cfg.MODEL.RANDCONV.KERNEL_SIZE_LIST,
+                                      n_dim=n_dim, kernel_size=self.cfg.MODEL.RANDCONV.KERNEL_SIZE,
                                       distribution=self.cfg.MODEL.RANDCONV.DIST)
         self.rand_conv_ops.to(self.device)
         return super().build_model()

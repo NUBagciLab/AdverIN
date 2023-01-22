@@ -138,7 +138,7 @@ class Preprocessor(object):
         else:
             if self.extract_region:
                 map_func = func.partial(image_preprocessor_2d_withregion, target_size=self.target_size,
-                                                               clip_percent=(0.5, 99.5))
+                                                               clip_percent=(0.5, 99.5), num_slice=num_slice)
             else:
                 map_func = func.partial(image_preprocessor_2d, target_size=self.target_size,
                                                                clip_percent=(0.5, 99.5))
