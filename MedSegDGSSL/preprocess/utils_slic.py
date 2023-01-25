@@ -45,7 +45,7 @@ def image_preprocessor_2d_withregion(file_dict, out_dir, target_size, clip_perce
     image_resize = 2*image_bn - 1
 
     out_dict["data"] = image_resize.astype(np.float32)
-    out_dict["region"] = np.expand_dims(get_region(image_bn), 0)
+    out_dict["region"] = np.expand_dims(get_region(np.transpose(image_bn, axes=(1, 2, 0))), 0)
 
     num_classes = file_dict['num_classes']
     meta_dict["meta"]['num_classes'] = num_classes

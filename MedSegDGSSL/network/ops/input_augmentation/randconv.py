@@ -35,8 +35,8 @@ class RandConv(nn.Module):
         self.distribution = distribution
         
         # self.register_buffer("rand_conv", self.conv)
-        self.reset_conv()
         self.random_func = self.get_random()
+        self.reset_conv()
 
     @torch.no_grad()
     def forward(self, input):
@@ -44,6 +44,7 @@ class RandConv(nn.Module):
             return input
 
         self.reset_conv()
+        self.conv.to(input.device)
         return self.conv(input)
 
     def get_random(self):
