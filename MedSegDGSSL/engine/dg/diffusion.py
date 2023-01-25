@@ -3,8 +3,10 @@ from torch.nn import functional as F
 
 import time
 import datetime
-from contextlib import contextmanager
+import numpy as np
+import monai.losses as losses
 
+from contextlib import contextmanager
 from MedSegDGSSL.dataset.data_manager import DataManager
 from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
 from MedSegDGSSL.engine.dg.vanilla import Vanilla
@@ -22,6 +24,18 @@ class DiffusionTrainer(Vanilla):
         super().build_model()
         self.model_ema = EMA(model=self.model)
         self.register_model(name='ema', model=self.model_ema)
+    
+    def get_loss_func(self):
+        """Get loss function, resetting due to mixup needs onehot labeling
+        """
+        potential_seg_loss_list = ["DiceLoss", "DiceCELoss", "DiceFocalLoss"]
+        if self.cfg.LOSS in potential_seg_loss_list:
+            loss = getattr(losses, self.cfg.LOSS)(include_background=True, softmax=True,
+                                                  to_onehot_y=False, batch=False)
+            # loss = losses.DiceLoss(include_background=False, softmax=True, to_onehot_y=True)
+        else:
+            raise FileNotFoundError(f"loss type {self.cfg.LOSS} not support, only support {potential_seg_loss_list}")
+        return loss
 
     @contextmanager
     def ema_scope(self, context=None):
@@ -95,10 +109,15 @@ class DiffusionTrainer(Vanilla):
                 loss_summary[f'dice {str(i+1)}'] = dice_value[i+1].item()
 
         label = to_onehot(label, self.num_classes)
-        loss = self.model.get_p_losses(input, label)
+        if np.random.random() > 0.5 or is_eval:
+            label = 2*label - 1
+            loss = self.model.get_p_losses(input, label)
+            loss_summary['rec_loss'] = loss.item()
+        else:
+            loss = self.model.get_seg_losses(input, label, segloss_func=self.loss_func)
+            loss_summary['seg_loss'] = loss.item()
         self.model_backward_and_update(loss, 'model')
-        loss_summary['loss'] = loss.item()
-
+        
         self.model_ema(self.model)
         
         if (self.batch_idx + 1) == self.num_batches:
@@ -112,13 +131,8 @@ class DiffusionTrainer(Vanilla):
         input = input.to(self.device)
         label = label.to(self.device)
         return input, label
-
-    def final_evaluation(self):
-        """A generic final evaluation pipeline."""
-        # extra_name=f'_fold_{self.cfg.DATASET.FOLD}'
-        super().final_evaluation()
     
     @torch.no_grad()
     def test(self, split=None):
         with self.ema_scope():
-            super().test(split=split)
+            return super().test(split=split)

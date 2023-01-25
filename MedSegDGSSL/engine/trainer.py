@@ -452,7 +452,7 @@ class SimpleTrainer(BaseTrainer):
                                                      data_shape=self.dm.dataset.data_shape)
         
         '''if self.cfg.DATA_IS_3D and self.cfg.TRAINING_IS_2D:
-            self.infer = SliceInferer(spatial_dim=0,
+            self.infer = SliceInferer(spatial_dim=0,+
                                         roi_size=self.cfg.MODEL.PATCH_SIZE,
                                         sw_batch_size=self.cfg.DATALOADER.TEST.BATCH_SIZE)
         else:'''

@@ -1,10 +1,12 @@
 import torch
 from torch.nn import functional as F
 
-from contextlib import contextmanager
-
 import time
 import datetime
+import numpy as np
+import monai.losses as losses
+
+from contextlib import contextmanager
 from MedSegDGSSL.dataset.data_manager import DataManager
 from MedSegDGSSL.engine import TRAINER_REGISTRY, TrainerX
 from MedSegDGSSL.engine.cross_fold.intra_trainer import IntraTrainer
@@ -34,6 +36,18 @@ class IntraDiffusionTrainer(IntraTrainer):
             self.model_ema.restore(self.model.parameters())
             if context is not None:
                 print(f"{context}: Restored training weights")
+
+    def get_loss_func(self):
+        """Get loss function, resetting due to mixup needs onehot labeling
+        """
+        potential_seg_loss_list = ["DiceLoss", "DiceCELoss", "DiceFocalLoss"]
+        if self.cfg.LOSS in potential_seg_loss_list:
+            loss = getattr(losses, self.cfg.LOSS)(include_background=True, softmax=True,
+                                                  to_onehot_y=False, batch=False)
+            # loss = losses.DiceLoss(include_background=False, softmax=True, to_onehot_y=True)
+        else:
+            raise FileNotFoundError(f"loss type {self.cfg.LOSS} not support, only support {potential_seg_loss_list}")
+        return loss
 
     def run_epoch(self):
         self.set_model_mode("train")
@@ -94,10 +108,15 @@ class IntraDiffusionTrainer(IntraTrainer):
                 loss_summary[f'dice {str(i+1)}'] = dice_value[i+1].item()
 
         label = to_onehot(label, self.num_classes)
-        loss = self.model.get_p_losses(input, label)
+        if np.random.random() > 0.5 or is_eval:
+            label = 2*label - 1
+            loss = self.model.get_p_losses(input, label)
+            loss_summary['rec_loss'] = loss.item()
+        else:
+            loss = self.model.get_seg_losses(input, label, segloss_func=self.loss_func)
+            loss_summary['seg_loss'] = loss.item()
         self.model_backward_and_update(loss, 'model')
-        loss_summary['loss'] = loss.item()
-        
+
         self.model_ema(self.model)
         
         if (self.batch_idx + 1) == self.num_batches:

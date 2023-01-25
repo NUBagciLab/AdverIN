@@ -55,7 +55,7 @@ def timestep_embedding(timesteps, dim, max_period=1000, repeat_only=False):
 
 class ConvolutionWithTime(Convolution):
     def __init__(self, spatial_dims: int, in_channels: int, embed_channels:int,
-                 out_channels: int, strides: Union[Sequence[int], int] = 1,
+                 out_channels: int, strides: Union[Sequence[int], int] = 1, time_steps:int = 1000,
                  kernel_size: Union[Sequence[int], int] = 3, adn_ordering: str = "NDA",
                  act: Optional[Union[Tuple, str]] = "PRELU", norm: Optional[Union[Tuple, str]] = "INSTANCE", dropout: Optional[Union[Tuple, str, float]] = None, dropout_dim: Optional[int] = 1, dilation: Union[Sequence[int], int] = 1, groups: int = 1, bias: bool = True, conv_only: bool = False, is_transposed: bool = False, padding: Optional[Union[Sequence[int], int]] = None, output_padding: Optional[Union[Sequence[int], int]] = None, dimensions: Optional[int] = None) -> None:
 
@@ -65,13 +65,14 @@ class ConvolutionWithTime(Convolution):
                          groups, bias, conv_only, is_transposed, padding,
                          output_padding, dimensions)
         self.time_embed_dim = embed_channels // 2
+        self.time_steps = time_steps
         self.time_embed = nn.Sequential(*[nn.Linear(self.time_embed_dim, embed_channels),
                                           nn.SiLU(),
                                           nn.Linear(embed_channels, out_channels)])
     
     def forward(self, x, t):
         x = super().forward(x)
-        t = timestep_embedding(t, dim=self.time_embed_dim)
+        t = timestep_embedding(t, dim=self.time_embed_dim, max_period=self.time_steps)
         t = self.time_embed(t)
         t = torch.reshape(t, (*t.shape, *((1,) * (x.dim()-t.dim()))))
         return x + t
@@ -79,7 +80,7 @@ class ConvolutionWithTime(Convolution):
 
 class ResidualUnitWithTime(ResidualUnit):
     def __init__(self, spatial_dims: int, in_channels: int, out_channels: int, embed_channels: int,
-                 strides: Union[Sequence[int], int] = 1, kernel_size: Union[Sequence[int], int] = 3,
+                 strides: Union[Sequence[int], int] = 1, time_steps:int = 1000, kernel_size: Union[Sequence[int], int] = 3,
                  subunits: int = 2, adn_ordering: str = "NDA", act: Optional[Union[Tuple, str]] = "PRELU",
                  norm: Optional[Union[Tuple, str]] = "INSTANCE", dropout: Optional[Union[Tuple, str, float]] = None,
                  dropout_dim: Optional[int] = 1, dilation: Union[Sequence[int], int] = 1, bias: bool = True, last_conv_only: bool = False, padding: Optional[Union[Sequence[int], int]] = None, dimensions: Optional[int] = None) -> None:
@@ -87,13 +88,14 @@ class ResidualUnitWithTime(ResidualUnit):
                          kernel_size, subunits, adn_ordering, act, norm, dropout,
                          dropout_dim, dilation, bias, last_conv_only, padding, dimensions)
         self.time_embed_dim = embed_channels // 2
+        self.time_steps = time_steps
         self.time_embed = nn.Sequential(*[nn.Linear(self.time_embed_dim, embed_channels),
                                           nn.SiLU(),
                                           nn.Linear(embed_channels, out_channels)])
-
+    
     def forward(self, x, t):
         x = super().forward(x)
-        t = timestep_embedding(t, dim=self.time_embed_dim)
+        t = timestep_embedding(t, dim=self.time_embed_dim, max_period=self.time_steps)
         t = self.time_embed(t)
         t = torch.reshape(t, (*t.shape, *((1,) * (x.dim()-t.dim()))))
         return x + t
@@ -376,6 +378,7 @@ class Encoder(nn.Module):
                  channels: Sequence[int],
                  embed_channel: int,
                  strides: Sequence[int],
+                 time_steps:int,
                  kernel_size: Union[Sequence[int], int] = 3,
                  num_res_units: int = 0,
                  act: Union[Tuple, str] = Act.PRELU,
@@ -393,6 +396,7 @@ class Encoder(nn.Module):
         self.num_res_units = num_res_units
         self.act = act
         self.norm = norm
+        self.time_steps = time_steps
         self.dropout = dropout
         self.bias = bias
         self.adn_ordering = adn_ordering
@@ -429,6 +433,7 @@ class Encoder(nn.Module):
                 out_channels,
                 self.embed_channel,
                 strides=strides,
+                time_steps=self.time_steps,
                 kernel_size=self.kernel_size,
                 subunits=self.num_res_units,
                 act=self.act,
@@ -444,6 +449,7 @@ class Encoder(nn.Module):
             out_channels,
             self.embed_channel,
             strides=strides,
+            time_steps=self.time_steps,
             kernel_size=self.kernel_size,
             act=self.act,
             norm=self.norm,
@@ -576,8 +582,8 @@ class UNet_EncDec(nn.Module):
         kernel_size: Union[Sequence[int], int] = 3,
         up_kernel_size: Union[Sequence[int], int] = 3,
         num_res_units: int = 0,
-        act: Union[Tuple, str] = Act.PRELU,
-        norm: Union[Tuple, str] = Norm.INSTANCE,
+        act: Union[Tuple, str] = Act.SELU,
+        norm: Union[Tuple, str] = Norm.GROUP,
         dropout: float = 0.0,
         bias: bool = True,
         adn_ordering: str = "NDA",
@@ -620,7 +626,7 @@ class UNet_EncDec(nn.Module):
         self.adn_ordering = adn_ordering
         self.return_features = return_features
         
-        self.context_encoder = contextEncoder(spatial_dims=self.dimensions,
+        '''self.context_encoder = contextEncoder(spatial_dims=self.dimensions,
                                               in_channels=self.in_channels, channels=self.channels,
                                               strides=self.strides, project_channels=self.embed_channel//2,
                                               kernel_size=self.kernel_size, num_res_units=self.num_res_units,
@@ -628,16 +634,22 @@ class UNet_EncDec(nn.Module):
                                               adn_ordering=self.adn_ordering)
         self.context_extract = ExtractContext(self.time_steps,
                                               num_stages=len(self.channels))
-        self.y_project = nn.Linear(in_features=self.out_channels, out_features=self.embed_channel//2)
-        self.x_project = nn.Linear(in_features=self.in_channels, out_features=self.embed_channel//2)
-        
-        '''self.cross_attention = CrossAttentionCondition(query_dim=self.embed_channel,
+        self.y_project = nn.Linear(in_features=self.out_channels, out_features=self.embed_channel//4)
+        self.x_project = nn.Linear(in_features=self.in_channels, out_features=self.embed_channel//4)
+
+        self.cross_attention = CrossAttentionCondition(query_dim=self.embed_channel,
                                                        context_dim=self.embed_channel,
                                                        heads=8, dim_head=32)'''
+        self.context_encoder = Encoder(spatial_dims=self.dimensions,
+                                       in_channels=self.in_channels, channels=self.channels,
+                                       embed_channel=embed_channel, strides=self.strides, time_steps=time_steps,
+                                       kernel_size=self.kernel_size, num_res_units=self.num_res_units,
+                                       act=self.act, norm=self.norm, dropout=self.dropout, bias=self.bias,
+                                       adn_ordering=self.adn_ordering)
 
         self.encoder = Encoder(spatial_dims=self.dimensions,
-                               in_channels=self.embed_channel, channels=self.channels,
-                               embed_channel=embed_channel, strides=self.strides,
+                               in_channels=self.out_channels, channels=self.channels,
+                               embed_channel=embed_channel, strides=self.strides, time_steps=time_steps,
                                kernel_size=self.kernel_size, num_res_units=self.num_res_units,
                                act=self.act, norm=self.norm, dropout=self.dropout, bias=self.bias,
                                adn_ordering=self.adn_ordering)
@@ -650,26 +662,23 @@ class UNet_EncDec(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor, with_context:bool=True) -> torch.Tensor:
         ### Encode the features into y using conditioning
         b, c, *_hwd = y.shape
-        y = torch.transpose(torch.flatten(y, start_dim=2), 1, 2)
-        # pdb.set_trace()
-        y = self.y_project(y)
-        x = torch.transpose(torch.flatten(x, start_dim=2), 1, 2)
-        # pdb.set_trace()
-        x = self.x_project(x)
+        
+        y_features = self.encoder(y, t)
+        x_features = self.context_encoder(x, t)
 
+        features = []
         if with_context:
-            
-            '''context = self.context_extract(self.context_encoder(x), t)
-            context = torch.transpose(torch.flatten(context, start_dim=2), 1, 2)'''
-            # y = self.cross_attention(y, context)
-            y = torch.cat([y, x], dim=1)
+            if not self.training or np.random.random() > 0.5:
+                for x_feature, y_feature in zip(x_features, y_features):
+                    features.append(x_feature*0.5+y_feature*0.5)
+            else:
+                features = y_features
         else:
-            y = torch.cat([y, y], dim=1)
-
-        y = torch.reshape(torch.transpose(y, 1, 2), (b, -1, *_hwd))
-        features = self.encoder(y, t)
+            features = x_features
+        
+        # y = torch.cat([x, y], dim=1)
+        # features = self.encoder(y, t)
         y = self.decoder(features)
-
         return y
 
 Unet_EncDec = UNet_EncDec
@@ -686,6 +695,7 @@ def diff_unet(model_cfg):
                        num_res_units=1,
                        norm= model_cfg.NORM,
                        dropout = model_cfg.DROPOUT)
+    print(unet)
     return unet
 
 
