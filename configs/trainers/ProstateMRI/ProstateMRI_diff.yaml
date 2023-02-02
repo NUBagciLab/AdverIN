@@ -1,6 +1,9 @@
 DATA_IS_3D: True
 TRAINING_IS_2D: True
 
+TRAIN:
+  CHECKPOINT_FREQ: 50
+
 DATASET:
   NAME: 'ProstateMRI'
 
@@ -15,7 +18,7 @@ MODEL:
   STRIDES: [2, 2, 2, 2, 2, 2]
   DROPOUT: 0.3
   NORM: 'BATCH'
-  TIME_STEPS: 400
+  TIME_STEPS: 800
   DIFFUSION:
     LOSS: 'l1'
 
@@ -28,6 +31,6 @@ DATALOADER:
 
 OPTIM:
   NAME: 'adamw'
-  LR: 0.01
+  LR: 0.001
   MAX_EPOCH: 1000
   LR_SCHEDULER: 'cosine'

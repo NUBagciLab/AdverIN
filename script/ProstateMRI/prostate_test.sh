@@ -23,7 +23,6 @@ cuda_device=0
 --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
 --output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}_${extra_name}/${D6} & )
 
-
 (CUDA_VISIBLE_DEVICES=1 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer ${trainer} \
