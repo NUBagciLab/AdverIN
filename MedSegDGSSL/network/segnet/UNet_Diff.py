@@ -640,15 +640,8 @@ class UNet_EncDec(nn.Module):
         self.cross_attention = CrossAttentionCondition(query_dim=self.embed_channel,
                                                        context_dim=self.embed_channel,
                                                        heads=8, dim_head=32)'''
-        self.context_encoder = Encoder(spatial_dims=self.dimensions,
-                                       in_channels=self.in_channels, channels=self.channels,
-                                       embed_channel=embed_channel, strides=self.strides, time_steps=time_steps,
-                                       kernel_size=self.kernel_size, num_res_units=self.num_res_units,
-                                       act=self.act, norm=self.norm, dropout=self.dropout, bias=self.bias,
-                                       adn_ordering=self.adn_ordering)
-
         self.encoder = Encoder(spatial_dims=self.dimensions,
-                               in_channels=self.out_channels, channels=self.channels,
+                               in_channels=self.out_channels+self.in_channels, channels=self.channels,
                                embed_channel=embed_channel, strides=self.strides, time_steps=time_steps,
                                kernel_size=self.kernel_size, num_res_units=self.num_res_units,
                                act=self.act, norm=self.norm, dropout=self.dropout, bias=self.bias,
@@ -662,7 +655,7 @@ class UNet_EncDec(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor, t: torch.Tensor, with_context:bool=True) -> torch.Tensor:
         ### Encode the features into y using conditioning
         b, c, *_hwd = y.shape
-        
+        '''
         y_features = self.encoder(y, t)
         x_features = self.context_encoder(x, t)
 
@@ -675,9 +668,9 @@ class UNet_EncDec(nn.Module):
                 features = y_features
         else:
             features = x_features
-        
-        # y = torch.cat([x, y], dim=1)
-        # features = self.encoder(y, t)
+        '''
+        y = torch.cat([x, y], dim=1)
+        features = self.encoder(y, t)
         y = self.decoder(features)
         return y
 
@@ -687,7 +680,7 @@ Unet_EncDec = UNet_EncDec
 def diff_unet(model_cfg):
     unet = UNet_EncDec(spatial_dims=model_cfg.SPATIAL_DIMS,
                        in_channels= model_cfg.IN_CHANNELS,
-                       out_channels= model_cfg.OUT_CHANNELS,
+                       out_channels= 1,
                        channels=model_cfg.FEATURES,
                        embed_channel=model_cfg.EMBED_CHANNEL,
                        time_steps=model_cfg.TIME_STEPS,
