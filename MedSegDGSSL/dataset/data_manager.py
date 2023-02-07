@@ -85,19 +85,19 @@ class DataManager:
 
         # Build transform
         if custom_tfm_train is None:
-            tfm_train = get_default_train_augmentation(cfg.MODEL.PATCH_SIZE)
+            tfm_train = get_default_train_augmentation(cfg.MODEL.PATCH_SIZE, params_key=dataset.data_shape)
         else:
             print('* Using custom transform for training')
             tfm_train = custom_tfm_train
 
         if custom_tfm_test is None:
-            tfm_test = get_online_eval_augmentation(cfg.MODEL.PATCH_SIZE)
+            tfm_test = get_online_eval_augmentation(cfg.MODEL.PATCH_SIZE, params_key=dataset.data_shape)
         else:
             print('* Using custom transform for testing')
             tfm_test = custom_tfm_test
         
         if custom_tfm_unlabel is None:
-            tfm_unlabel = get_default_train_augmentation(cfg.MODEL.PATCH_SIZE)
+            tfm_unlabel = get_default_train_augmentation(cfg.MODEL.PATCH_SIZE, params_key=dataset.data_shape)
         else:
             print('* Using custom transform for unlabel data')
             tfm_unlabel = custom_tfm_unlabel

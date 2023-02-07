@@ -37,6 +37,8 @@ class DistributionUncertainty(nn.Module):
         return t
 
     def forward(self, x):
+        if (not self.training) or (np.random.random()) > self.p:
+            return x
 
         x_flatten = torch.flatten(x, start_dim=2)
         mean = x_flatten.mean(dim=2, keepdim=False)

@@ -63,10 +63,17 @@ class AdverHist(nn.Module):
                                       grad_norm=self.grad_norm,
                                       axis=self.axis)
         ### 1st order interpolation
-        x = interp1d(map_point, (x-self.data_min)/(self.data_max-self.data_min), self.num_control_point)
-        data_min, data_max = self.data_min + (self.data_max-self.data_min)/4*np.random.random(), \
-                                self.data_max - (self.data_max-self.data_min)/4*np.random.random()
-        x = data_min + (data_max - data_min)*x
+        x_shape = x.shape
+        x_flat = torch.flatten(x, start_dim=2)
+        x_min, _ = torch.min(x_flat, dim=2)
+        x_max, _ = torch.max(x_flat, dim=2)
+        x_min, x_max = torch.reshape(x_min, (*x_shape[:2], *((1,)*(len(x_shape)-2)))),\
+                        torch.reshape(x_max, (*x_shape[:2], *((1,)*(len(x_shape)-2))))
+        x = interp1d(map_point, (x-x_min)/(x_max-x_min), self.num_control_point)
+        x_min, x_max = x_min + (x_max-x_min)/4*np.random.random(), \
+                            x_max - (x_max-x_min)/4*np.random.random()
+        
+        x = x_min + (x_max - x_min)*x
 
         return x
 
