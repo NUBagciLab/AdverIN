@@ -14,15 +14,32 @@ from skimage import io as skio
 from skimage import transform
 import SimpleITK as sitk
 
-from skimage.segmentation import slic
+from skimage.segmentation import slic, expand_labels
 from skimage.segmentation import mark_boundaries
 
-def get_region(img):
-    region = slic(img, n_segments=20, compactness=0.2, sigma=1,
-                     start_label=0)
+def get_region(img:np.array, seg:np.array, 
+               n_seg_region:int=20, expand_pixels:int=5):
+    
+    if seg is None:
+        region = slic(img, n_segments=n_seg_region, compactness=0.2,
+                      sigma=1,  start_label=0)
+        return region
+
+    seg = expand_labels(seg, distance=expand_pixels)
+    if img.ndim != seg.ndim:
+        seg = np.expand_dims(seg, axis=0)
+
+    seg_mask = (seg > 0.5).astype(seg.dtype)
+    region1 = slic(img, n_segments=n_seg_region//2, compactness=0.2,
+                   sigma=1,  start_label=0)*(1-seg_mask)
+    region2 = (slic(img*seg_mask, n_segments=n_seg_region*8, compactness=0.2,
+                    sigma=1,  start_label=0) + np.max(region1) + 1)*seg_mask
+    pos_seg = np.round_(region1 + region2).astype(np.int32)
+    _, region = np.unique(pos_seg.flatten(), return_inverse=True)
+    region = np.reshape(region % n_seg_region, region1.shape)
     return region
 
-def image_preprocessor_2d_withregion(file_dict, out_dir, target_size, clip_percent=(0.5, 99.5)):
+def image_preprocessor_2d_withregion(file_dict, out_dir, target_size, clip_percent=(0.5, 99.5),**seg_kwargs):
     ### This one is to support the png, jpg ... 2d data tyle
     # file dict should be like {"image":image_dir, "label":label_dir}
     out_dict = {}
@@ -45,7 +62,6 @@ def image_preprocessor_2d_withregion(file_dict, out_dir, target_size, clip_perce
     image_resize = 2*image_bn - 1
 
     out_dict["data"] = image_resize.astype(np.float32)
-    out_dict["region"] = np.expand_dims(get_region(np.transpose(image_bn, axes=(1, 2, 0))), 0)
 
     num_classes = file_dict['num_classes']
     meta_dict["meta"]['num_classes'] = num_classes
@@ -56,12 +72,16 @@ def image_preprocessor_2d_withregion(file_dict, out_dir, target_size, clip_perce
         seg_resize = transform.resize(seg, target_size, order=0)
         out_dict["seg"] = np.expand_dims(seg_resize.astype(np.int64), 0)
     
+    out_dict["region"] = np.expand_dims(get_region(np.transpose(image_bn, axes=(1, 2, 0)),
+                                                   seg=seg, **seg_kwargs), 0)
+    
     meta_dict["pos_match"] = {}
     meta_dict["pos_match"][case_name+".npz"] = case_name+".npz"
     np.savez(out_dir+".npz", **out_dict)
     return meta_dict
 
-def image_preprocessor_3d_slice_withregion(file_dict, out_dir, target_size, clip_percent=(0.5, 99.5), num_slice:int=1):
+def image_preprocessor_3d_slice_withregion(file_dict, out_dir, target_size,
+                                           clip_percent=(0.5, 99.5), num_slice:int=1, **seg_kwargs):
     ### This one is to support the nii, dicom ... 3d data tyle
     # file dict should be like {"image":image_dir, "label":label_dir}
     # note that the resize transform will be limited with xy plane
@@ -102,8 +122,7 @@ def image_preprocessor_3d_slice_withregion(file_dict, out_dir, target_size, clip
     for i in range(depth):
         slice_list = [max(min(i-num_slice//2+idx, depth-1), 0) for idx in range(num_slice)]
         out_dict_slice = {"data": image_resize[slice_list]}
-        # Generate the 
-        out_dict_slice["region"] = np.expand_dims(get_region(image_bn[i]), 0)
+        
         if "label" in file_dict.keys():
             out_dict_slice.update({"seg": np.expand_dims(seg_resize[i], 0)})
             if i not in positive_slice:
@@ -115,6 +134,10 @@ def image_preprocessor_3d_slice_withregion(file_dict, out_dir, target_size, clip
         else:
             meta_dict["pos_match"][case_name + "_slice{:03d}.npz".format(i)] = \
                     case_name + "_slice{:03d}.npz".format(i)
+        
+        # Generate the 
+        out_dict_slice["region"] = np.expand_dims(get_region(image_bn[i], seg=seg_resize[i],
+                                                             **seg_kwargs), 0)
         np.savez(out_dir+"_slice{:03d}.npz".format(i), **out_dict_slice)
 
     meta_dict["depth"] = depth
