@@ -134,6 +134,7 @@ class AdverHist(AdverTraining):
             mask += (region==i)
         
         # balance the selection by always draw one positive region
+        # pdb.set_trace()
         positive_region = region * (label > 0.5)
         pos_number = torch.unique(torch.flatten(positive_region, start_dim=1), dim=1)[:, 1:]
         b, c = pos_number.shape

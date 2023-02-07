@@ -63,6 +63,13 @@ class Preprocessor(object):
             self.extract_region = self.data_preprocess_config["extract_region"]
             assert not (self.extract_region and self.is_threeD_training), "Not support 3D Training"
 
+            self.seg_kwargs = {}
+            if "num_seg" in self.data_preprocess_config.keys():
+                self.seg_kwargs['n_seg_region'] = self.data_preprocess_config['num_seg']
+            
+            if "expand_pixels" in self.data_preprocess_config.keys():
+                self.seg_kwargs['expand_pixels'] = self.data_preprocess_config['expand_pixels']
+
         self.fold_nums:int = 3
         if "fold_nums" in self.data_preprocess_config.keys():
             self.fold_nums = int(self.data_preprocess_config["fold_nums"])
@@ -131,14 +138,14 @@ class Preprocessor(object):
                 num_slice = self.data_preprocess_config["num_slice"]
                 if self.extract_region:
                     map_func = func.partial(image_preprocessor_3d_slice_withregion, target_size=self.target_size,
-                                                               clip_percent=(0.5, 99.5), num_slice=num_slice)
+                                                               clip_percent=(0.5, 99.5), num_slice=num_slice, **self.seg_kwargs)
                 else:
                     map_func = func.partial(image_preprocessor_3d_slice, target_size=self.target_size,
                                                                clip_percent=(0.5, 99.5), num_slice=num_slice)
         else:
             if self.extract_region:
                 map_func = func.partial(image_preprocessor_2d_withregion, target_size=self.target_size,
-                                                               clip_percent=(0.5, 99.5))
+                                                               clip_percent=(0.5, 99.5), **self.seg_kwargs)
             else:
                 map_func = func.partial(image_preprocessor_2d, target_size=self.target_size,
                                                                clip_percent=(0.5, 99.5))

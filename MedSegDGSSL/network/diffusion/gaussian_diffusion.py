@@ -8,9 +8,9 @@ Docstrings have been added, as well as DDIM sampling and a new collection of bet
 import enum
 import math
 
-import numpy as np
 import torch
 import torch.nn as nn
+import numpy as np
 
 from .nn import mean_flat
 from .losses import normal_kl, discretized_gaussian_log_likelihood
@@ -125,11 +125,12 @@ class GaussianDiffusion(nn.Module):
         loss_type,
         rescale_timesteps=False,
     ):
-        self.model: nn.Module = build_model(model_cfg)
         self.model_mean_type = model_mean_type
         self.model_var_type = model_var_type
         self.loss_type = loss_type
         self.rescale_timesteps = rescale_timesteps
+
+        self.model = build_model(model_cfg)
 
         # Use float64 for accuracy.
         betas = np.array(betas, dtype=np.float64)
@@ -232,13 +233,13 @@ class GaussianDiffusion(nn.Module):
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
 
     def p_mean_variance(
-        self, x, t, clip_denoised=True, denoised_fn=None, train_var:bool=False, model_kwargs=None
+        self, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
     ):
         """
         Apply the model to get p(x_{t-1} | x_t), as well as a prediction of
         the initial x, x_0.
 
-        :param model: the which takes a signal and a batch of timesteps
+        :param model: the  which takes a signal and a batch of timesteps
                       as input.
         :param x: the [N x C x ...] tensor at time t.
         :param t: a 1-D Tensor of timesteps.
@@ -260,10 +261,6 @@ class GaussianDiffusion(nn.Module):
         B, C = x.shape[:2]
         assert t.shape == (B,)
         model_output = self.model(x, self._scale_timesteps(t), **model_kwargs)
-
-        if train_var:
-            model_output, model_var_values = torch.split(model_output, C, dim=1)
-            model_output = torch.cat([model_output.detach(), model_var_values], dim=1)
 
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             assert model_output.shape == (B, C * 2, *x.shape[2:])
@@ -360,7 +357,7 @@ class GaussianDiffusion(nn.Module):
         return t
 
     def p_sample(
-        self, x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
+        self,  x, t, clip_denoised=True, denoised_fn=None, model_kwargs=None
     ):
         """
         Sample x_{t-1} from the model at the given timestep.
@@ -393,7 +390,6 @@ class GaussianDiffusion(nn.Module):
 
     def p_sample_loop(
         self,
-       
         shape,
         noise=None,
         clip_denoised=True,
@@ -421,7 +417,7 @@ class GaussianDiffusion(nn.Module):
         """
         final = None
         for sample in self.p_sample_loop_progressive(
-           
+            
             shape,
             noise=noise,
             clip_denoised=clip_denoised,
@@ -435,7 +431,7 @@ class GaussianDiffusion(nn.Module):
 
     def p_sample_loop_progressive(
         self,
-       
+        
         shape,
         noise=None,
         clip_denoised=True,
@@ -471,7 +467,7 @@ class GaussianDiffusion(nn.Module):
             t = torch.tensor([i] * shape[0], device=device)
             with torch.no_grad():
                 out = self.p_sample(
-                   
+                    
                     img,
                     t,
                     clip_denoised=clip_denoised,
@@ -483,7 +479,7 @@ class GaussianDiffusion(nn.Module):
 
     def ddim_sample(
         self,
-       
+        
         x,
         t,
         clip_denoised=True,
@@ -497,7 +493,7 @@ class GaussianDiffusion(nn.Module):
         Same usage as p_sample().
         """
         out = self.p_mean_variance(
-           
+            
             x,
             t,
             clip_denoised=clip_denoised,
@@ -528,7 +524,7 @@ class GaussianDiffusion(nn.Module):
 
     def ddim_reverse_sample(
         self,
-       
+        
         x,
         t,
         clip_denoised=True,
@@ -541,6 +537,7 @@ class GaussianDiffusion(nn.Module):
         """
         assert eta == 0.0, "Reverse ODE only for deterministic path"
         out = self.p_mean_variance(
+            
             x,
             t,
             clip_denoised=clip_denoised,
@@ -565,7 +562,7 @@ class GaussianDiffusion(nn.Module):
 
     def ddim_sample_loop(
         self,
-       
+        
         shape,
         noise=None,
         clip_denoised=True,
@@ -582,7 +579,7 @@ class GaussianDiffusion(nn.Module):
         """
         final = None
         for sample in self.ddim_sample_loop_progressive(
-           
+            
             shape,
             noise=noise,
             clip_denoised=clip_denoised,
@@ -597,6 +594,7 @@ class GaussianDiffusion(nn.Module):
 
     def ddim_sample_loop_progressive(
         self,
+        
         shape,
         noise=None,
         clip_denoised=True,
@@ -631,7 +629,7 @@ class GaussianDiffusion(nn.Module):
             t = torch.tensor([i] * shape[0], device=device)
             with torch.no_grad():
                 out = self.ddim_sample(
-                   
+                    
                     img,
                     t,
                     clip_denoised=clip_denoised,
@@ -643,7 +641,7 @@ class GaussianDiffusion(nn.Module):
                 img = out["sample"]
 
     def _vb_terms_bpd(
-        self, x_start, x_t, t, clip_denoised=True, train_var:bool=False, model_kwargs=None
+        self, x_start, x_t, t, clip_denoised=True, model_kwargs=None
     ):
         """
         Get a term for the variational lower-bound.
@@ -659,7 +657,7 @@ class GaussianDiffusion(nn.Module):
             x_start=x_start, x_t=x_t, t=t
         )
         out = self.p_mean_variance(
-            x_t, t, clip_denoised=clip_denoised, train_var=train_var, model_kwargs=model_kwargs
+             x_t, t, clip_denoised=clip_denoised, model_kwargs=model_kwargs
         )
         kl = normal_kl(
             true_mean, true_log_variance_clipped, out["mean"], out["log_variance"]
@@ -717,12 +715,16 @@ class GaussianDiffusion(nn.Module):
             ]:
                 B, C = x_t.shape[:2]
                 assert model_output.shape == (B, C * 2, *x_t.shape[2:])
+                model_output, model_var_values = torch.split(model_output, C, dim=1)
+                # Learn the variance using the variational bound, but don't let
+                # it affect our mean prediction.
+                frozen_out = torch.cat([model_output.detach(), model_var_values], dim=1)
                 terms["vb"] = self._vb_terms_bpd(
+                    model=lambda *args, r=frozen_out: r,
                     x_start=x_start,
                     x_t=x_t,
                     t=t,
                     clip_denoised=False,
-                    train_var=True,
                 )["output"]
                 if self.loss_type == LossType.RESCALED_MSE:
                     # Divide by 1000 for equivalence with initial implementation.
@@ -765,7 +767,7 @@ class GaussianDiffusion(nn.Module):
         )
         return mean_flat(kl_prior) / np.log(2.0)
 
-    def calc_bpd_loop(self, x_start, clip_denoised=True, model_kwargs=None):
+    def calc_bpd_loop(self,  x_start, clip_denoised=True, model_kwargs=None):
         """
         Compute the entire variational lower-bound, measured in bits-per-dim,
         as well as other related quantities.
@@ -796,6 +798,7 @@ class GaussianDiffusion(nn.Module):
             # Calculate VLB term at the current timestep
             with torch.no_grad():
                 out = self._vb_terms_bpd(
+                    
                     x_start=x_start,
                     x_t=x_t,
                     t=t_batch,

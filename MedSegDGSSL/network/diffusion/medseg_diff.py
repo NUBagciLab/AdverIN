@@ -95,7 +95,7 @@ class MedSegDiffusion(nn.Module):
 
         self.denoise_fn = diff_unet(model_cfg=model_cfg)
         self.num_timesteps = model_cfg.TIME_STEPS
-        self.out_channels = model_cfg.OUT_CHANNELS
+        self.out_channels = 1
         self.loss_type = model_cfg.DIFFUSION.LOSS
 
         if exists(betas):
@@ -155,8 +155,8 @@ class MedSegDiffusion(nn.Module):
         return posterior_mean, posterior_variance, posterior_log_variance_clipped
     
     def p_mean_variance(self, y, x, t, clip_denoised: bool):
-        # y_recon = self.predict_start_from_noise(y, t=t, noise=self.denoise_fn(y=y, x=x, t=t))
-        y_recon = self.denoise_fn(y=y, x=x, t=t)
+        y_recon = self.predict_start_from_noise(y, t=t, noise=self.denoise_fn(y=y, x=x, t=t))
+        # y_recon = self.denoise_fn(y=y, x=x, t=t)
 
         if clip_denoised:
             y_recon.clamp_(-1., 1.)
@@ -165,7 +165,7 @@ class MedSegDiffusion(nn.Module):
         return model_mean, posterior_variance, posterior_log_variance
     
     @torch.no_grad()
-    def p_sample(self, y, x, t, clip_denoised=False, repeat_noise=False):
+    def p_sample(self, y, x, t, clip_denoised=True, repeat_noise=False):
         b, *_, device = *y.shape, y.device
         model_mean, _, model_log_variance = self.p_mean_variance(y=y, x=x, t=t, clip_denoised=clip_denoised)
         noise = noise_like(y.shape, device, repeat_noise)
@@ -189,7 +189,8 @@ class MedSegDiffusion(nn.Module):
     def forward(self, img):
         batch_size, c, *image_size = img.shape
         channels = self.out_channels
-        return self.p_sample_loop(img, (batch_size, channels, *image_size))
+        img = self.p_sample_loop(img, (batch_size, channels, *image_size))
+        return torch.cat([1-img, img], dim=1)
 
     def q_sample(self, y_start, t, noise=None):
         noise = default(noise, lambda: torch.randn_like(y_start))
@@ -205,7 +206,7 @@ class MedSegDiffusion(nn.Module):
 
         y_noisy = self.q_sample(y_start=y_start, t=t, noise=noise)
         y_pred = self.denoise_fn(y=y_noisy, x=x, t=t)
-        target = y_start
+        target = noise
 
         if self.loss_type == 'l1':
             loss = (target - y_pred).abs().mean()
@@ -222,13 +223,6 @@ class MedSegDiffusion(nn.Module):
         b, device = y.shape[0], y.device
         t = torch.randint(0, self.num_timesteps, (b,), device=device).long()
         return self.p_losses(y, x, t)
-    
-    def get_seg_losses(self, x, y, segloss_func):
-        b, device = y.shape[0], y.device
-        t = torch.randint(0, self.num_timesteps//10, (b,), device=device).long()
-        noisy = self.q_sample(y, t=t)
-        return segloss_func(self.denoise_fn(y=noisy, x=x,
-                                            t=t, with_context=False), y)
 
 @NETWORK_REGISTRY.register()
 def medseg_diff(model_cfg):

@@ -1,5 +1,5 @@
 #!/bin/bash
-DATA=/data/datasets/DGFramework/ProstateMRI/processed/2DSlice3Region
+DATA=/data/datasets/DGFramework/ProstateMRI/processed/2DSlice3PosNegRegion
 DATASET=ProstateMRI
 D1=BIDMC
 D2=BMC
@@ -9,9 +9,9 @@ D5=UCL
 D6=RUNMC
 
 SEED=0
-method=diff
-extra_name=adamw
-trainer=DiffusionTrainer
+method=adverhistregion
+extra_name=posnegbalance
+trainer=AdverHist
 cuda_device=0
 
 (CUDA_VISIBLE_DEVICES=0 python MedSegDGSSL/tools/train.py \
@@ -22,7 +22,6 @@ cuda_device=0
 --seed ${SEED} \
 --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
 --output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}_${extra_name}/${D6} & )
-
 
 (CUDA_VISIBLE_DEVICES=1 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \

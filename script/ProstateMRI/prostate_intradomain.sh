@@ -10,11 +10,11 @@ D6=RUNMC
 
 SEED=0
 method=intradiff
-extra_name=adamw
+extra_name=oneout
 trainer=IntraDiffusionTrainer
 cuda_device=0
 
-(CUDA_VISIBLE_DEVICES=7 python MedSegDGSSL/tools/train.py \
+(CUDA_VISIBLE_DEVICES=5 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer ${trainer} \
 --source-domains ${D1} ${D2} ${D3} ${D4} ${D5} ${D6} \
@@ -23,6 +23,7 @@ cuda_device=0
 --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
 --output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}_${extra_name}/fold_0 )
 
+:'
 (CUDA_VISIBLE_DEVICES=7 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer ${trainer} \
@@ -40,6 +41,6 @@ cuda_device=0
 --fold 2 \
 --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
 --output-dir /data/datasets/DGFramework/${DATASET}/output/dg/${method}_${extra_name}/fold_2 )
-
+'
 wait
 echo "Finished"

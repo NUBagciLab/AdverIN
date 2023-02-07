@@ -14,6 +14,7 @@ from MedSegDGSSL.metrics import compute_dice, to_onehot
 from MedSegDGSSL.utils.meters import AverageMeter, MetricMeter
 from MedSegDGSSL.network.diffusion import EMA
 
+
 @TRAINER_REGISTRY.register()
 class IntraDiffusionTrainer(IntraTrainer):
     ''' To implement intra domain training process
@@ -107,14 +108,11 @@ class IntraDiffusionTrainer(IntraTrainer):
             for i in range(self.num_classes-1):
                 loss_summary[f'dice {str(i+1)}'] = dice_value[i+1].item()
 
-        label = to_onehot(label, self.num_classes)
-        if np.random.random() > 0.5 or is_eval:
-            label = 2*label - 1
-            loss = self.model.get_p_losses(input, label)
-            loss_summary['rec_loss'] = loss.item()
-        else:
-            loss = self.model.get_seg_losses(input, label, segloss_func=self.loss_func)
-            loss_summary['seg_loss'] = loss.item()
+        # label = to_onehot(label, self.num_classes)
+        
+        label = label - 1/2
+        loss = self.model.get_p_losses(input, label)
+        loss_summary['rec_loss'] = loss.item()
         self.model_backward_and_update(loss, 'model')
 
         self.model_ema(self.model)
