@@ -1,5 +1,5 @@
 #!/bin/bash
-DATA=/data/bagcilab/datasets/zheyuan/DGFramework/Fundus/processed/2DRegion
+DATA=/data/bagcilab/datasets/zheyuan/DGFramework/Fundus/processed/2DRegionPosNeg
 DATASET=Fundus
 D1=Domain1
 D2=Domain2
@@ -12,7 +12,7 @@ cuda_device=0
 int=0
 
 trainer=AdverHist
-method=adverhistregion_norm
+method=adverhistregion_channel
 
 echo ${trainer}
 echo ${method}
@@ -36,7 +36,7 @@ echo '*************************************************************'
 --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
 --output-dir /home/zze3980/Projects/DGFramework/output/${DATASET}/dg/${method}/${D3} & )
 
-: '
+
 (CUDA_VISIBLE_DEVICES=3 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer ${trainer} \
@@ -46,6 +46,7 @@ echo '*************************************************************'
 --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
 --output-dir /home/zze3980/Projects/DGFramework/output/${DATASET}/dg/${method}/${D2} & )
 
+
 (CUDA_VISIBLE_DEVICES=3 python MedSegDGSSL/tools/train.py \
 --root  ${DATA} \
 --trainer ${trainer} \
@@ -54,6 +55,6 @@ echo '*************************************************************'
 --seed ${SEED} \
 --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
 --output-dir /home/zze3980/Projects/DGFramework/output/${DATASET}/dg/${method}/${D1} )
-'
+
 
 echo 'Finished Here'

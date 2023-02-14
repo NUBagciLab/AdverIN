@@ -27,16 +27,19 @@ def get_region(img:np.array, seg:np.array,
 
     seg = expand_labels(seg, distance=expand_pixels)
     if img.ndim != seg.ndim:
-        seg = np.expand_dims(seg, axis=0)
+        seg = np.expand_dims(seg, axis=-1)
 
     seg_mask = (seg > 0.5).astype(seg.dtype)
     region1 = slic(img, n_segments=n_seg_region//2, compactness=0.2,
-                   sigma=1,  start_label=0)*(1-seg_mask)
+                   sigma=1,  start_label=0)
+    region1 = np.expand_dims(region1, axis=-1)*(1-seg_mask)
     region2 = (slic(img*seg_mask, n_segments=n_seg_region*8, compactness=0.2,
-                    sigma=1,  start_label=0) + np.max(region1) + 1)*seg_mask
+                    sigma=1,  start_label=0) + np.max(region1) + 1)
+    region2 = np.expand_dims(region2, axis=-1)*seg_mask
     pos_seg = np.round_(region1 + region2).astype(np.int32)
     _, region = np.unique(pos_seg.flatten(), return_inverse=True)
     region = np.reshape(region % n_seg_region, region1.shape)
+    region = np.expand_dims(np.squeeze(region), 0)
     return region
 
 def image_preprocessor_2d_withregion(file_dict, out_dir, target_size, clip_percent=(0.5, 99.5),**seg_kwargs):
@@ -69,11 +72,12 @@ def image_preprocessor_2d_withregion(file_dict, out_dir, target_size, clip_perce
         # For PNG you need to transfer them to corresponding label
         seg = skio.imread(file_dict["label"], as_gray=True).astype(np.float32) / 255
         seg = np.round(seg * (num_classes - 1))
+        
         seg_resize = transform.resize(seg, target_size, order=0)
         out_dict["seg"] = np.expand_dims(seg_resize.astype(np.int64), 0)
     
-    out_dict["region"] = np.expand_dims(get_region(np.transpose(image_bn, axes=(1, 2, 0)),
-                                                   seg=seg, **seg_kwargs), 0)
+    out_dict["region"] = get_region(np.transpose(image_bn, axes=(1, 2, 0)),
+                                                   seg=seg_resize, **seg_kwargs)
     
     meta_dict["pos_match"] = {}
     meta_dict["pos_match"][case_name+".npz"] = case_name+".npz"
@@ -136,8 +140,8 @@ def image_preprocessor_3d_slice_withregion(file_dict, out_dir, target_size,
                     case_name + "_slice{:03d}.npz".format(i)
         
         # Generate the 
-        out_dict_slice["region"] = np.expand_dims(get_region(image_bn[i], seg=seg_resize[i],
-                                                             **seg_kwargs), 0)
+        out_dict_slice["region"] = get_region(image_bn[i], seg=seg_resize[i],
+                                                             **seg_kwargs)
         np.savez(out_dir+"_slice{:03d}.npz".format(i), **out_dict_slice)
 
     meta_dict["depth"] = depth

@@ -18,6 +18,9 @@ def interp1d(y, xi, nbins):
     index_round = torch.floor(index).to(torch.long)
     index_round_pluse_one = torch.clamp_max(index_round + 1, nbins-1).to(torch.long)
     index_left, index_right = index - index_round, index_round_pluse_one-index
+    y, index_round, index_round_pluse_one = torch.flatten(y, start_dim=0, end_dim=1), \
+                                            torch.flatten(index_round, start_dim=0, end_dim=1), \
+                                            torch.flatten(index_round_pluse_one, start_dim=0, end_dim=1),
     select_left = torch.reshape(torch.gather(y, dim=1, index=torch.flatten(index_round, start_dim=1)),
                                 shape=index.shape)
     select_right = torch.reshape(torch.gather(y, dim=1, index=torch.flatten(index_round_pluse_one, start_dim=1)),
@@ -35,7 +38,7 @@ class AdverHist(nn.Module):
         data_min, data_max: the min, max value to control the data range
         num_control_point: how many control points for the histogram changing
     """
-    def __init__(self, batch_size, prob:float=0.5, data_min:float=-1.0, data_max:float=1.0,
+    def __init__(self, batch_size, num_channels, prob:float=0.5, data_min:float=-1.0, data_max:float=1.0,
                  num_control_point:int=11, grad_norm:float=1., p:int=2, ):
         super().__init__()
         self.prob = prob
@@ -43,21 +46,22 @@ class AdverHist(nn.Module):
         self.data_max = data_max
         self.num_control_point = num_control_point
         self.batch_size = batch_size
+        self.num_channels = num_channels
         self.p = p
         self.grad_norm = grad_norm*(num_control_point-1)
         self.reverse_grad = ReverseNormGrad()
-        self.params = nn.parameter.Parameter(torch.zeros(self.batch_size, self.num_control_point),
+        self.params = nn.parameter.Parameter(torch.zeros(self.batch_size, self.num_channels, self.num_control_point),
                                              requires_grad=True)
-        self.axis = tuple([1])
+        self.axis = tuple([2])
 
     def forward(self, x):
         if not self.training:
             return x
 
         # print(torch.softmax(self.params, dim=0))
-        map_point =  torch.cumsum(torch.softmax(self.params, dim=1), dim=1)
-        map_point_min, _ = torch.min(map_point, dim=1, keepdim=True)
-        map_point_max, _ = torch.max(map_point, dim=1, keepdim=True)
+        map_point =  torch.cumsum(torch.softmax(self.params, dim=-1), dim=-1)
+        map_point_min, _ = torch.min(map_point, dim=-1, keepdim=True)
+        map_point_max, _ = torch.max(map_point, dim=-1, keepdim=True)
         map_point = (map_point-map_point_min) / (map_point_max-map_point_min)
         map_point = self.reverse_grad(map_point, p=self.p,
                                       grad_norm=self.grad_norm,
@@ -92,6 +96,7 @@ class AdverHist(nn.Module):
 def adver_hist(cfg):
     model_cfg = cfg.MODEL
     adv = AdverHist(batch_size=cfg.DATALOADER.TRAIN_X.BATCH_SIZE,
+                    num_channels=cfg.MODEL.IN_CHANNELS,
                     prob=model_cfg.ADVER_HIST.PROB,
                     data_min=model_cfg.ADVER_HIST.DATA_MIN,
                     data_max=model_cfg.ADVER_HIST.DATA_MAX,
