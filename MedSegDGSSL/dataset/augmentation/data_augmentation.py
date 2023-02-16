@@ -18,6 +18,37 @@ from MedSegDGSSL.dataset.augmentation.augmentation_params import params_dict
 from MedSegDGSSL.dataset.augmentation.custom_transforms import RandCropByPosNegRatio, RandAdjustResolution, MinMaxNormalization, MinMaxNormalization
 
 
+def get_baseline_train_augmentation(patch_size, params_key='3D'):
+    params = params_dict[params_key]
+    tr_transforms = []
+    if params.get("do_crop_by_pn_ratio"):
+        tr_transforms.append(RandCropByPosNegRatio(patch_size,
+                                                   pos=params.get("pos_ratio"), neg=params.get("neg_ratio")))
+
+    tr_transforms.append(SpatialTransform(
+        patch_size, patch_center_dist_from_border=None, do_elastic_deform=params.get("do_elastic"),
+        alpha=params.get("elastic_deform_alpha"), sigma=params.get("elastic_deform_sigma"),
+        do_rotation=params.get("do_rotation"), angle_x=params.get("rotation_x"), angle_y=params.get("rotation_y"),
+        angle_z=params.get("rotation_z"), do_scale=params.get("do_scaling"), scale=params.get("scale_range"),
+        border_mode_data=params.get("border_mode_data"), border_cval_data=0, order_data=3, border_mode_seg="constant",
+        border_cval_seg=-1,
+        order_seg=1, random_crop=params.get("random_crop"), p_el_per_sample=params.get("p_eldef"),
+        p_scale_per_sample=params.get("p_scale"), p_rot_per_sample=params.get("p_rot"),
+        independent_scale_for_each_axis=params.get("independent_scale_factor_for_each_axis")
+    ))
+
+    if params.get("do_mirror"):
+        tr_transforms.append(MirrorTransform(params.get("mirror_axes")))
+
+    if params.get("do_res"):
+        tr_transforms.append(RandAdjustResolution(params.get("p_resolution"), params.get("gaussian_range"),
+                             params.get("sharp_range")))
+
+    tr_transforms.append(MinMaxNormalization(norm_range=params.get('norm_range')))
+    # tr_transforms.append(MinMaxNormalization(norm_range=params.get('norm_range')))
+    tr_transforms = Compose(tr_transforms)
+    return tr_transforms
+
 def get_default_train_augmentation(patch_size, params_key='3D'):
     params = params_dict[params_key]
     tr_transforms = []
@@ -37,12 +68,12 @@ def get_default_train_augmentation(patch_size, params_key='3D'):
         independent_scale_for_each_axis=params.get("independent_scale_factor_for_each_axis")
     ))
 
-    tr_transforms.append(GaussianNoiseTransform(p_per_sample=params.get("p_gaussian_noise")))
+    """tr_transforms.append(GaussianNoiseTransform(p_per_sample=params.get("p_gaussian_noise")))
     tr_transforms.append(ContrastAugmentationTransform(contrast_range=params.get("contrast_range"), p_per_sample=params.get("p_contrast")))
     if params.get("do_gamma"):
         tr_transforms.append(
             GammaTransform(params.get("gamma_range"), False, True, retain_stats=params.get("gamma_retain_stats"),
-                           p_per_sample=params["p_gamma"]))
+                           p_per_sample=params["p_gamma"]))"""
 
     if params.get("do_mirror"):
         tr_transforms.append(MirrorTransform(params.get("mirror_axes")))
