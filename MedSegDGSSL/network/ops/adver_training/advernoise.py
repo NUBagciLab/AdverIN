@@ -29,7 +29,7 @@ class AdverNoise(nn.Module):
         self.reverse_grad = ReverseNormGrad()
         self.params = nn.parameter.Parameter(torch.zeros(size=self.input_size),
                                              requires_grad=True)
-        self.axis = tuple(range(1, len(input_size)))
+        self.axis = tuple(range(2, len(input_size)))
     
     def forward(self, x):
         if not self.training:

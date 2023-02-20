@@ -11,6 +11,7 @@ https://github.com/cherise215/AdvBias
 import torch
 import torch.nn as nn
 
+from .reverse_grad import ReverseNormGrad
 from MedSegDGSSL.network.build import NETWORK_REGISTRY
 
 def get_gassuian_smooth(spatial_dim:int,
@@ -45,12 +46,15 @@ class AdverBias(nn.Module):
         magnitude: the magnitude for controling the bias
     """
     def __init__(self, input_size, control_spacing,
-                       magnitude:float=0.3, smooth_kernel_size:int=3):
+                       magnitude:float=0.3, smooth_kernel_size:int=3,
+                       p:int=2, grad_norm:float=1.):
         super().__init__()
         self.input_size = input_size
         self.control_spacing = control_spacing
         self.spacial_dims = len(control_spacing)
         self.smooth_kernel_size = smooth_kernel_size
+        self.p = p 
+        self.grad_norm = grad_norm
         assert len(input_size) == (len(control_spacing)+2), 'Match the control spacing with the input'
         control_size = [input_size[0], 1]
         for i in range(self.spacial_dims):
@@ -65,11 +69,16 @@ class AdverBias(nn.Module):
                                     mode=interp_mode, align_corners=False)
         self.params = nn.parameter.Parameter(torch.ones(size=control_size),
                                              requires_grad=True)
+        
+        self.reverse_grad = ReverseNormGrad()
+        self.axis = tuple(range(2, len(input_size)))
 
     def forward(self, x):
         if not self.training:
             return x
         bias = self.generate_bias(self.params)
+        bias = self.reverse_grad(bias, self.p,
+                                 self.grad_norm, self.axis)
         x = x * bias
         # reset the param after adversarial attacking
         # Note this will not influence the storaged grad

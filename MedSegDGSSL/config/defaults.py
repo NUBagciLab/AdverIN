@@ -75,6 +75,7 @@ _C.DATASET.CIFAR_C_TYPE = ''
 _C.DATASET.CIFAR_C_LEVEL = 1
 # Use all data in the unlabeled data set (e.g. FixMatch)
 _C.DATASET.ALL_AS_UNLABELED = False
+_C.DATASET.AUGMENT = 'baseline_augmentation'
 
 ###########################
 # Dataloader

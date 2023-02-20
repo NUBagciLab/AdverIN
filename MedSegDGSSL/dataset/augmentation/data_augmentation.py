@@ -18,7 +18,7 @@ from MedSegDGSSL.dataset.augmentation.augmentation_params import params_dict
 from MedSegDGSSL.dataset.augmentation.custom_transforms import RandCropByPosNegRatio, RandAdjustResolution, MinMaxNormalization, MinMaxNormalization
 
 
-def get_baseline_train_augmentation(patch_size, params_key='3D'):
+def baseline_augmentation(patch_size, params_key='3D'):
     params = params_dict[params_key]
     tr_transforms = []
     if params.get("do_crop_by_pn_ratio"):
@@ -49,7 +49,7 @@ def get_baseline_train_augmentation(patch_size, params_key='3D'):
     tr_transforms = Compose(tr_transforms)
     return tr_transforms
 
-def get_default_train_augmentation(patch_size, params_key='3D'):
+def bigaug_augmentation(patch_size, params_key='3D'):
     params = params_dict[params_key]
     tr_transforms = []
     if params.get("do_crop_by_pn_ratio"):
@@ -68,12 +68,12 @@ def get_default_train_augmentation(patch_size, params_key='3D'):
         independent_scale_for_each_axis=params.get("independent_scale_factor_for_each_axis")
     ))
 
-    """tr_transforms.append(GaussianNoiseTransform(p_per_sample=params.get("p_gaussian_noise")))
+    tr_transforms.append(GaussianNoiseTransform(p_per_sample=params.get("p_gaussian_noise")))
     tr_transforms.append(ContrastAugmentationTransform(contrast_range=params.get("contrast_range"), p_per_sample=params.get("p_contrast")))
     if params.get("do_gamma"):
         tr_transforms.append(
             GammaTransform(params.get("gamma_range"), False, True, retain_stats=params.get("gamma_retain_stats"),
-                           p_per_sample=params["p_gamma"]))"""
+                           p_per_sample=params["p_gamma"]))
 
     if params.get("do_mirror"):
         tr_transforms.append(MirrorTransform(params.get("mirror_axes")))
@@ -87,7 +87,7 @@ def get_default_train_augmentation(patch_size, params_key='3D'):
     tr_transforms = Compose(tr_transforms)
     return tr_transforms
 
-def get_online_eval_augmentation(patch_size, params_key='3D'):
+def eval_augmentation(patch_size, params_key='3D'):
     params = params_dict[params_key]
     val_transforms = []
     if params.get("do_crop_by_pn_ratio"):
@@ -98,7 +98,7 @@ def get_online_eval_augmentation(patch_size, params_key='3D'):
     val_transforms = Compose(val_transforms)
     return val_transforms
 
-def get_dense_augmentation(patch_size, params_key='3D'):
+def insane_augmentation(patch_size, params_key='3D'):
     params = params_dict[params_key]
     tr_transforms = []
 
