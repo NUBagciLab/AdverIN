@@ -58,6 +58,10 @@ class Preprocessor(object):
         else:
             self.target_size = tuple(self.data_preprocess_config["target_size"])
         
+        self.extra_split = None
+        if "extra_split" in self.data_preprocess_config.keys():
+            self.extra_split = self.data_preprocess_config["extra_split"]
+        
         self.extract_region = False
         if "extract_region" in self.data_preprocess_config.keys():
             self.extract_region = self.data_preprocess_config["extract_region"]
@@ -103,13 +107,24 @@ class Preprocessor(object):
             dataset_meta_dict[domain] = temp_dataset_json
         return file_dict, outdir_dict, dataset_meta_dict
     
-    def kfold_split(self, data_dict):
+    def kfold_split(self, data_dict, extra_split:str=None):
         """Split the whole dataset files according to the case name
         Ensure the files from one case not participate the train and test at the same time
         data_dict: the whole data dict case_name:files
         """
         splits = {}
         case_list = list(data_dict.keys())
+        if extra_split is not None:
+            data_dict_update = {}
+            for case in case_list:
+                case_update = case.split(extra_split, 1)[0]
+                if case_update not in data_dict_update.keys():
+                    data_dict_update[case_update] = data_dict[case]
+                else:
+                    data_dict_update[case_update].extend(data_dict[case])
+            case_list = list(data_dict_update.keys())
+            data_dict = data_dict_update
+
         kf = KFold(n_splits=self.fold_nums)
         for i, (train_id, test_id) in enumerate(kf.split(case_list)):
             splits[i] = {}
@@ -151,8 +166,10 @@ class Preprocessor(object):
                                                                clip_percent=(0.5, 99.5))
         
         for domain in self.domains:
-            with Pool(processes=self.NUM_THREAD) as pool:
-                meta_list = pool.starmap(map_func, zip(file_dict[domain], outdir_dict[domain]))
+            meta_list = image_preprocessor_3d_slice_withregion(file_dict[domain][0], outdir_dict[domain][0],
+                                target_size = self.target_size, clip_percent = (0.5,99.5), num_slice=num_slice, **self.seg_kwargs)
+            # with Pool(processes=self.NUM_THREAD) as pool:
+            #     meta_list = pool.starmap(map_func, zip(file_dict[domain], outdir_dict[domain]))
             
             meta_dict, pos_match_dict = {}, {}
             data_dict = {}
@@ -163,7 +180,7 @@ class Preprocessor(object):
             out_dict = {'case_info':meta_dict,
                         'dataset_info': dataset_meta_dict[domain],
                         'positive_match':pos_match_dict}
-            out_dict['kfold_split'] = self.kfold_split(data_dict=data_dict)
+            out_dict['kfold_split'] = self.kfold_split(data_dict=data_dict, extra_split=self.extra_split)
             with open(os.path.join(self.processed_dir, domain, "meta.pickle"), 'wb') as f:
                 pickle.dump(out_dict, f)
 

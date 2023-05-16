@@ -1,0 +1,6 @@
+data_dir: "/data/datasets/DGFramework/Cardiac"
+out_tag: "2DSlice3"
+file_type: "nii.gz"
+target_size: [384, 384]
+num_slice: 3
+extra_split: "_E"
