@@ -8,11 +8,11 @@ D4=Domain4
 
 SEED=0
 
-trainers_list=(AdverTraining  AdverTraining RSCDG AlignFeaturesDG AlignFeaturesDG)
-methods_list=(adverbias  advernoise rsc alignmmd aligncrossentropy)
+#trainers_list=(Vanilla Vanilla  AdverTraining  RSCDG RandConvDG MixUpDG StyleAugDG StyleAugDG StyleAugDG StyleAugDG AdverTraining AlignFeaturesDG AlignFeaturesDG)
+#methods_list=(bigaug inorm adverbias rsc randconv mixup mixstyle dsu padain advernoise  alignmmd aligncrossentropy)
 
-# trainers_list=(AlignFeaturesDG RSCDG)
-# methods_list=(alignmmd rsc)
+trainers_list=(AdverTraining )
+methods_list=(advernoise )
 cuda_device=0
 
 int=0
@@ -44,7 +44,7 @@ do
     --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
     --output-dir /home/zze3980/Projects/DGFramework/output/${DATASET}/dg/${method}/${D3} & )
 
-    (CUDA_VISIBLE_DEVICES=3 python MedSegDGSSL/tools/train.py \
+    (CUDA_VISIBLE_DEVICES=2 python MedSegDGSSL/tools/train.py \
     --root  ${DATA} \
     --trainer ${trainer} \
     --source-domains ${D1} ${D3} ${D4}  \
@@ -53,7 +53,7 @@ do
     --config-file configs/trainers/${DATASET}/${DATASET}_${method}.yaml \
     --output-dir /home/zze3980/Projects/DGFramework/output/${DATASET}/dg/${method}/${D2} & )
 
-    (CUDA_VISIBLE_DEVICES=3 python MedSegDGSSL/tools/train.py \
+    (CUDA_VISIBLE_DEVICES=2 python MedSegDGSSL/tools/train.py \
     --root  ${DATA} \
     --trainer ${trainer} \
     --source-domains ${D3} ${D2} ${D4}  \

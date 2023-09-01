@@ -52,6 +52,8 @@ class AdverHist(nn.Module):
         self.reverse_grad = ReverseNormGrad()
         self.params = nn.parameter.Parameter(torch.zeros(self.batch_size, self.num_channels, self.num_control_point),
                                              requires_grad=True)
+        self.scale = nn.parameter.Parameter(torch.zeros(self.batch_size, self.num_channels, 2),
+                                             requires_grad=True)
         self.axis = tuple([2])
 
     def forward(self, x):
@@ -74,8 +76,11 @@ class AdverHist(nn.Module):
         x_min, x_max = torch.reshape(x_min, (*x_shape[:2], *((1,)*(len(x_shape)-2)))),\
                         torch.reshape(x_max, (*x_shape[:2], *((1,)*(len(x_shape)-2))))
         x = interp1d(map_point, (x-x_min)/(x_max-x_min), self.num_control_point)
-        x_min, x_max = x_min + (x_max-x_min)/4*np.random.random(), \
-                            x_max - (x_max-x_min)/4*np.random.random()
+        x_scale = torch.sigmoid(self.scale)
+        x_min, x_max = x_min + (x_max - x_min)/2*torch.reshape(x_scale[:, :, 0], (*x_shape[:2], *((1,)*(len(x_shape)-2)))), \
+                       x_max - (x_max - x_min)/2*torch.reshape(x_scale[:, :, 1], (*x_shape[:2], *((1,)*(len(x_shape)-2))))
+        # x_min, x_max = x_min + (x_max-x_min)/4*np.random.random(), \
+        #                    x_max - (x_max-x_min)/4*np.random.random()
         
         x = x_min + (x_max - x_min)*x
 
@@ -90,6 +95,9 @@ class AdverHist(nn.Module):
         # reset the param after adversarial attacking
         # Note this will not influence the storaged grad or influence the optimizer updating
         self.params.data = torch.zeros_like(self.params.data)
+    
+    def reset_random(self):
+        self.params.data = torch.randn_like(self.params.data)
 
 
 @NETWORK_REGISTRY.register()

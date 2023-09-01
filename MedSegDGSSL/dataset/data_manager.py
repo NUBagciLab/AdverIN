@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from MedSegDGSSL.dataset.build import build_dataset
 from MedSegDGSSL.dataset.samplers import build_sampler
 from MedSegDGSSL.dataset.dataset import *
-from MedSegDGSSL.dataset.augmentation import data_augmentation
+import MedSegDGSSL.dataset.augmentation as data_augmentation
 
 
 def build_data_loader(

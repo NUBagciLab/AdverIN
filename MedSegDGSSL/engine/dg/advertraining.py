@@ -108,6 +108,9 @@ class AdverHist(AdverTraining):
         loss_adver = self.loss_func(output_temp, label)
         self.model_backward_and_update(loss_adver, 'adv')
 
+        ##### random reset the weight
+        self.adv.reset_random()
+
         output = self.model(self.adv(input)*select_region + (1-select_region)*input)
         #print(input.shape, torch.sum(label))
         loss = self.loss_func(output, label)
@@ -138,14 +141,14 @@ class AdverHist(AdverTraining):
         positive_region = region * (label > 0.5)
         pos_number = torch.unique(torch.flatten(positive_region, start_dim=1), dim=1)[:, 1:]
         b, c = pos_number.shape
-        pos_index = torch.randint(low=0, high=c, size=(b,1), device=label.device)
-        pos_number = torch.gather(pos_number, dim=1, index=pos_index)
-        pos_number = torch.reshape(pos_number, (b, *((1,)*(region.dim()-1))))
-        mask += (region==pos_number)
+        if c >= 1:
+            pos_index = torch.randint(low=0, high=c, size=(b,1), device=label.device)
+            pos_number = torch.gather(pos_number, dim=1, index=pos_index)
+            pos_number = torch.reshape(pos_number, (b, *((1,)*(region.dim()-1))))
+            mask += (region==pos_number)
 
         mask = (mask > 0.5).to(torch.float)
         return mask
-
 
     def parse_batch_train(self, batch):
         input = batch['data']
@@ -155,3 +158,59 @@ class AdverHist(AdverTraining):
         label = label.to(self.device)
         region = region.to(self.device)
         return input, label, region
+
+
+
+@TRAINER_REGISTRY.register()
+class AdverTraining2(TrainerX):
+    """Adversarial training.
+    """
+    def build_model(self):
+        cfg = self.cfg
+
+        print('Building Adversial Training Block')
+        self.adv = build_network(cfg.MODEL.ADVER_MODEL_NAME, cfg=cfg)
+        self.adv.to(self.device)
+        print('# params: {:,}'.format(count_num_param(self.adv)))
+        # For adversarial training, the optimizer should be just sgd without any momentum
+        self.optim_adv = torch.optim.SGD(self.adv.parameters(), lr=cfg.MODEL.ADVER_RATE, 
+                                         momentum=0, weight_decay=0)
+        self.register_model('adv', self.adv, self.optim_adv)
+
+        print('Building Segmentation network')
+        super().build_model()
+
+    def forward_backward(self, batch):
+        input, label = self.parse_batch_train(batch)
+
+        # Compute General Attacking
+        output = self.model(input, self.adv)
+        loss_adver = self.loss_func(output, label)
+        # Perhaps clip the grad if needed?
+        # torch.nn.utils.clip_grad_norm_(self.adv.parameters())
+        self.model_backward_and_update(loss_adver, 'adv')
+
+        output = self.model(input, self.adv)
+        #print(input.shape, torch.sum(label))
+        loss = self.loss_func(output, label)
+        self.model_backward_and_update(loss, 'model')
+
+        self.adv.reset()
+        loss_summary = {
+            'loss': loss_adver.item(),
+            'adver loss': loss.item()}
+        dice_value = compute_dice(output, label)
+        for i in range(self.num_classes-1):
+            loss_summary[f'dice {str(i+1)}'] = dice_value[i+1].item()
+
+        if (self.batch_idx + 1) == self.num_batches:
+            self.update_lr("model")
+
+        return loss_summary
+
+    def parse_batch_train(self, batch):
+        input = batch['data']
+        label = batch['seg']
+        input = input.to(self.device)
+        label = label.to(self.device)
+        return input, label

@@ -7,7 +7,7 @@ eps = 1e-4
 class _ReverseGrad(Function):
 
     @staticmethod
-    def forward(ctx, input, grad_scaling):
+    def forward(ctx, input, grad_scaling=1.):
         ctx.grad_scaling = grad_scaling
         return input.view_as(input)
 
