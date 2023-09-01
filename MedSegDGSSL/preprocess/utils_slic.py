@@ -18,8 +18,7 @@ from skimage.segmentation import slic, expand_labels
 from skimage.segmentation import mark_boundaries
 
 def get_region(img:np.array, seg:np.array, 
-               n_seg_region:int=20, expand_pixels:int=5):
-    
+               n_seg_region:int=20, expand_pixels:int=10, split_ratio:int=10):
     if seg is None:
         region = slic(img, n_segments=n_seg_region, compactness=0.2,
                       sigma=1,  start_label=0)
@@ -27,15 +26,22 @@ def get_region(img:np.array, seg:np.array,
 
     seg = expand_labels(seg, distance=expand_pixels)
     if img.ndim != seg.ndim:
-        seg = np.expand_dims(seg, axis=-1)
-
-    seg_mask = (seg > 0.5).astype(seg.dtype)
+        seg_mask = np.expand_dims((seg > 0.5).astype(seg.dtype), axis=-1)
+    else:
+        seg_mask = (seg > 0.5).astype(seg.dtype)
     region1 = slic(img, n_segments=n_seg_region//2, compactness=0.2,
-                   sigma=1,  start_label=0)
-    region1 = np.expand_dims(region1, axis=-1)*(1-seg_mask)
-    region2 = (slic(img*seg_mask, n_segments=n_seg_region*8, compactness=0.2,
+                    sigma=1,  start_label=0)
+
+    region2 = (slic(img*seg_mask, n_segments=n_seg_region*split_ratio, compactness=0.2,
                     sigma=1,  start_label=0) + np.max(region1) + 1)
-    region2 = np.expand_dims(region2, axis=-1)*seg_mask
+
+    if img.ndim != seg.ndim:
+        region1 = np.expand_dims(region1, axis=-1)*(1-seg_mask)
+        region2 = np.expand_dims(region2, axis=-1)*seg_mask
+    else:
+        region1 = region1*(1-seg_mask)
+        region2 = region2*seg_mask
+
     pos_seg = np.round_(region1 + region2).astype(np.int32)
     _, region = np.unique(pos_seg.flatten(), return_inverse=True)
     region = np.reshape(region % n_seg_region, region1.shape)

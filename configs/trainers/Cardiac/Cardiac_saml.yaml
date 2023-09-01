@@ -1,0 +1,30 @@
+DATA_IS_3D: True
+TRAINING_IS_2D: True
+LOSS: 'DiceLoss'
+
+DATASET:
+  NAME: 'Cardiac'
+
+MODEL:
+  NAME: 'unet_withfeature'
+  SPATIAL_DIMS: 2
+  IN_CHANNELS: 3
+  OUT_CHANNELS: 4
+  FEATURES: [16, 32, 64, 128, 256]
+  STRIDES: [2, 2, 2, 2]
+  DROPOUT: 0.3
+  NORM: 'INSTANCE'
+
+DATALOADER:
+  TRAIN_X:
+    BATCH_SIZE: 160
+    SAMPLER: 'RandomDomainSampler'
+  TEST:
+    BATCH_SIZE: 32
+  NUM_WORKERS: 8
+
+OPTIM:
+  NAME: 'sgd'
+  LR: 0.01
+  MAX_EPOCH: 1000
+  LR_SCHEDULER: 'cosine'
