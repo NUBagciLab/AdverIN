@@ -164,7 +164,12 @@ class NewTrainer(TrainerX):
 ```
 ## Citation
 ```
-Citation here
+@article{zhang2023domain,
+  title={Domain generalization with adversarial intensity attack for medical image segmentation},
+  author={Zhang, Zheyuan and Wang, Bin and Yao, Lanhong and Demir, Ugur and Jha, Debesh and Turkbey, Ismail Baris and Gong, Boqing and Bagci, Ulas},
+  journal={arXiv preprint arXiv:2304.02720},
+  year={2023}
+}
 ```
 
 ## Acknowledgement
