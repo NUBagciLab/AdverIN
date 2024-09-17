@@ -81,28 +81,17 @@ CUDA_VISIBLE_DEVICES=${cuda_device} python MedSegDGSSL/tools/train.py \
 --output-dir output/dg/${DATASET}/${method}/${D6}
 ```
 ### Implemented Domain Generalization Method
-Here we implement several previous domain generalization methods as follow. Detailed tutorials are providede in []
+Here we implement several previous domain generalization methods as follow. Detailed methods can be check under /engine/dg
 
 **Data Augmentation**
-+ 1
-+ 2
-+ 3
 
 **Style Mixing**
-+ 1
-+ 2
-+ 3
 
 **Feature Alignment**
-+ 1
-+ 2
-+ 3
 
 **Meta-Learning**
-+ 1
 
 **Self-Challenging**
-+ 1
 
 ### Add New Network
 We can add the new segmentation network easily (we use the unet implementation of MONAI as example) as follow:
